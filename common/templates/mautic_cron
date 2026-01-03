@@ -12,25 +12,25 @@ BASH_ENV=/tmp/cron.env
 10,25,40,55 * * * * php /var/www/html/bin/console mautic:campaigns:trigger 2>&1 | tee /tmp/stdout
 
 # Monitored E-mail - every 1 min
-#* * * * * php /var/www/html/bin/console mautic:email:fetch 2>&1 | tee /tmp/stdout
+* * * * * php /var/www/html/bin/console mautic:email:fetch 2>&1 | tee /tmp/stdout
 
 # Social Monitoring - every 6 min
 #*/6 * * * * php /var/www/html/bin/console mautic:social:monitoring 2>&1 | tee /tmp/stdout
 
 # Import Contacts - every 3 min - fix 269
-#*/3 * * * * php /var/www/html/bin/console mautic:import 2>&1 | tee /tmp/stdout
+*/3 * * * * php /var/www/html/bin/console mautic:import 2>&1 | tee /tmp/stdout
 
 # Export Contacts - every 3 min
-#*/3 * * * * php /var/www/html/bin/console mautic:contacts:scheduled_export 2>&1 | tee /tmp/stdout
+*/3 * * * * php /var/www/html/bin/console mautic:contacts:scheduled_export 2>&1 | tee /tmp/stdout
 
 # Webhooks - every 1 min
 #* * * * * php /var/www/html/bin/console mautic:webhooks:process 2>&1 | tee /tmp/stdout
 
 # Update MaxMind GeoLite2 IP database - every hour - fix 171
-#0 * * * * php /var/www/html/bin/console mautic:iplookup:download 2>&1 | tee /tmp/stdout
+0 * * * * php /var/www/html/bin/console mautic:iplookup:download 2>&1 | tee /tmp/stdout
 
 # Clean up old data - at 02:01 - fix 207
-#1 2 * * * php /var/www/html/bin/console mautic:maintenance:cleanup --days-old=365 2>&1 | tee /tmp/stdout - DISABLED, MAY CAUSE DATALOSS - TBD
+1 2 * * * php /var/www/html/bin/console mautic:maintenance:cleanup --days-old=180 2>&1 | tee /tmp/stdout - DISABLED, MAY CAUSE DATALOSS - TBD
 
 # MaxMind CCPA compliance - at 03:02 on sunday, at 03:12 on sunday
 #2 3 * * 0 php /var/www/html/bin/console mautic:donotsell:download 2>&1 | tee /tmp/stdout
