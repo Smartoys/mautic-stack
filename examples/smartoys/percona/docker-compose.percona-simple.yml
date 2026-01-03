@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  percona-db:
+    image: percona/percona-server:8.0.44
+    container_name: percona-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./logs:/var/log/mysql
+    ports:
+      - "3306:3306"
+    command:
+      - --slow_query_log=1
+      - --slow_query_log_file=/var/log/mysql/mysql-slow.log
+      - --long_query_time=1
+      - --log_queries_not_using_indexes=1
+      - --log_slow_admin_statements=1
+      - --log_slow_slave_statements=1
+      - --sql-mode=STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+      - --max_connections=200
+      - --innodb_buffer_pool_size=1G
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - mautic-db-network
+
+  # Percona Toolkit analyzer - runs on demand
+  percona-toolkit:
+    image: perconalab/percona-toolkit:latest
+    container_name: percona-toolkit
+    volumes:
+      - ./logs:/var/log/mysql:ro
+      - ./scripts:/opt/analysis:ro
+      - ./reports:/reports
+    command: tail -f /dev/null  # Keep container running
+    networks:
+      - mautic-db-network
+    depends_on:
+      - percona-db
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  mautic-db-network:
+    name: ${NETWORK_NAME:-mautic-db-network}
+    driver: bridge
