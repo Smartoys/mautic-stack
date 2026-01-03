@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image_type: [apache, fpm]
+        image_type: [apache]
     permissions:
       contents: read
 
@@ -88,7 +88,7 @@ jobs:
     needs: test-build
     strategy:
       matrix:
-        image_type: [apache, fpm]
+        image_type: [apache]
     permissions:
       contents: read
       security-events: write
@@ -124,7 +124,7 @@ jobs:
     needs: test-build
     strategy:
       matrix:
-        image_type: [apache, fpm]
+        image_type: [apache]
     permissions:
       contents: write
 
@@ -153,7 +153,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image_type: [apache, fpm]
+        image_type: [apache]
     permissions:
       contents: read
       packages: write
@@ -190,7 +190,7 @@ jobs:
             type=raw,value=${{ env.MAUTIC_VERSION }}-${{ env.BUILD_DATE }}
             type=semver,pattern={{major}}.{{minor}},value=${{ env.MAUTIC_VERSION }},enable=${{ inputs.overwrite_latest_minor }}
             type=semver,pattern={{major}},value=${{ env.MAUTIC_VERSION }},enable=${{ inputs.overwrite_latest_major }}
-            type=raw,value=latest,enable=${{ inputs.tag_as_latest && matrix.image_type == 'apache' }},suffix=
+            type=raw,value=latest,enable=${{ inputs.tag_as_latest }},suffix=
           flavor: |
             latest=false
             prefix=
