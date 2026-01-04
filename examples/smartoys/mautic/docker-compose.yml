@@ -26,24 +26,8 @@ services:
     volumes: *mautic-volumes
     environment:
       - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
-      - DOCKER_MAUTIC_RUN_MIGRATIONS=${DOCKER_MAUTIC_RUN_MIGRATIONS}
-      # Database Configuration
-      - MAUTIC_DB_HOST=percona-db
-      - MAUTIC_DB_PORT=3306
-      - MAUTIC_DB_DATABASE=${MAUTIC_DB_DATABASE}
-      - MAUTIC_DB_USER=${MAUTIC_DB_USER}
-      - MAUTIC_DB_PASSWORD=${MYSQL_PASSWORD}
-      - PHP_INI_VALUE_DATE_TIMEZONE=Europe/Brussels
-      - PHP_INI_VALUE_UPLOAD_MAX_FILESIZE=64M
-      - PHP_INI_VALUE_POST_MAX_FILESIZE=64M
-      - PHP_INI_VALUE_MEMORY_LIMIT=1G
-      - PHP_INI_VALUE_MAX_EXECUTION_TIME=300
-      # Message Queue Configuration
-      - MAUTIC_MESSENGER_DSN_EMAIL=amqp://guest:guest@rabbitmq:5672/mautic/messages
-      - MAUTIC_MESSENGER_DSN_HIT=amqp://guest:guest@rabbitmq:5672/mautic/messages
-      # Proxy and URL Configuration
-      - MAUTIC_TRUSTED_PROXIES=0.0.0.0/0
-      - MAUTIC_URL=${MAUTIC_URL}
+    env_file:
+      - .mautic_env
     healthcheck:
       test: curl http://localhost
       start_period: 5s
@@ -83,24 +67,9 @@ services:
     image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
     volumes: *mautic-volumes
     environment:
-      - DOCKER_MAUTIC_ROLE=mautic_cron
-      # Database Configuration
-      - MAUTIC_DB_HOST=percona-db
-      - MAUTIC_DB_PORT=3306
-      - MAUTIC_DB_DATABASE=${MAUTIC_DB_DATABASE}
-      - MAUTIC_DB_USER=${MAUTIC_DB_USER}
-      - MAUTIC_DB_PASSWORD=${MYSQL_PASSWORD}
-      - PHP_INI_VALUE_DATE_TIMEZONE=Europe/Brussels
-      - PHP_INI_VALUE_UPLOAD_MAX_FILESIZE=64M
-      - PHP_INI_VALUE_POST_MAX_FILESIZE=64M
-      - PHP_INI_VALUE_MEMORY_LIMIT=1G
-      - PHP_INI_VALUE_MAX_EXECUTION_TIME=300      
-      # Message Queue Configuration
-      - MAUTIC_MESSENGER_DSN_EMAIL=amqp://guest:guest@rabbitmq:5672/mautic/messages
-      - MAUTIC_MESSENGER_DSN_HIT=amqp://guest:guest@rabbitmq:5672/mautic/messages
-      # Proxy and URL Configuration
-      - MAUTIC_TRUSTED_PROXIES=0.0.0.0/0
-      - MAUTIC_URL=${MAUTIC_URL}
+      - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
+    env_file:
+      - .mautic_env
     depends_on:
       mautic_web:
         condition: service_healthy
@@ -117,24 +86,9 @@ services:
     image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
     volumes: *mautic-volumes
     environment:
-      - DOCKER_MAUTIC_ROLE=mautic_worker
-      # Database Configuration
-      - MAUTIC_DB_HOST=percona-db
-      - MAUTIC_DB_PORT=3306
-      - MAUTIC_DB_DATABASE=${MAUTIC_DB_DATABASE}
-      - MAUTIC_DB_USER=${MAUTIC_DB_USER}
-      - MAUTIC_DB_PASSWORD=${MYSQL_PASSWORD}
-      - PHP_INI_VALUE_DATE_TIMEZONE=Europe/Brussels
-      - PHP_INI_VALUE_UPLOAD_MAX_FILESIZE=64M
-      - PHP_INI_VALUE_POST_MAX_FILESIZE=64M
-      - PHP_INI_VALUE_MEMORY_LIMIT=1G
-      - PHP_INI_VALUE_MAX_EXECUTION_TIME=300      
-      # Message Queue Configuration
-      - MAUTIC_MESSENGER_DSN_EMAIL=amqp://guest:guest@rabbitmq:5672/mautic/messages
-      - MAUTIC_MESSENGER_DSN_HIT=amqp://guest:guest@rabbitmq:5672/mautic/messages
-      # Proxy and URL Configuration
-      - MAUTIC_TRUSTED_PROXIES=0.0.0.0/0
-      - MAUTIC_URL=${MAUTIC_URL}
+      - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
+    env_file:
+      - .mautic_env
     depends_on:
       mautic_web:
         condition: service_healthy
