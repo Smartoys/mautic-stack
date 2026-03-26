@@ -1,22 +1,6 @@
 
 #!/bin/bash
-
-# Dump the remote database to a local SQL file
-mysqldump -h 192.168.81.48 -u root -pg9uL5mCWTk1YIq92 --single-transaction --quick mailing | pv > mailing_dump.sql
-
-
-# Drop all tables in the target database
-
-docker exec -i percona-db mysql -u root -pv2j2qrqvtv mautic_db_smartoys -e "
-SET FOREIGN_KEY_CHECKS = 0;
-SET @tables = NULL;
-SELECT GROUP_CONCAT(table_name) INTO @tables FROM information_schema.tables WHERE table_schema = 'mautic_db_smartoys';
-SET @tables = CONCAT('DROP TABLE IF EXISTS ', @tables);
-PREPARE stmt FROM @tables;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-SET FOREIGN_KEY_CHECKS = 1;
-"
+/clear
 
 # Restore the database from the SQL dump file
 
@@ -32,13 +16,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 docker exec -it mautic-smartoys-mautic_web-1 php bin/console cache:clear
 
 # 2. Check migration status (see what's pending)
-docker exec -it mautic-smartoys-mautic_web-1 php bin/console doctrine:migrations:status
+docker exec -it mautic-smartoys-mautic_web-1 php bin/console mautic:update:apply --finish
 
 # 3. Run migrations
 docker exec -it mautic-smartoys-mautic_web-1 php bin/console doctrine:migrations:migrate --no-interaction
-
-# 4. Update Mautic-specific schema
-docker exec -it mautic-smartoys-mautic_web-1 php bin/console mautic:update:apply --force
 
 # 5. Clear cache again
 docker exec -it mautic-smartoys-mautic_web-1 php bin/console cache:clear
@@ -51,9 +32,9 @@ docker run --rm -u 0:0 -v mautic-db-logs:/var/log/mysql alpine:3.20 \
   sh -lc 'mkdir -p /var/log/mysql && chown -R 1001:1001 /var/log/mysql && chmod 775 /var/log/mysql'
 docker restart percona-db
 
-most keys of local.php must be re-imported
+#most keys of local.php must be re-imported
 
-todo redeploy the percona stack from org repo
+#todo redeploy the percona stack from org repo
 
 docker exec -it percona-toolkit sh -lc 'pt-query-digest /var/log/mysql/mysql-slow.log > /reports/slowlog-report.txt'
 

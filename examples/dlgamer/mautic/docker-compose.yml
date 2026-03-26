@@ -1,0 +1,109 @@
+x-mautic-volumes:
+  &mautic-volumes
+  # At the root of the host mounts for Mautic data persistence
+  - /portainer/${COMPOSE_PROJECT_NAME}-mautic/config:/var/www/html/config:z
+  - /portainer/${COMPOSE_PROJECT_NAME}-mautic/logs:/var/www/html/var/logs:z
+  - /portainer/${COMPOSE_PROJECT_NAME}-mautic/media/files:/var/www/html/docroot/media/files:z
+  - /portainer/${COMPOSE_PROJECT_NAME}-mautic/media/images:/var/www/html/docroot/media/images:z
+  - /portainer/${COMPOSE_PROJECT_NAME}-cron:/opt/mautic/cron:z
+services:
+  # Database moved to separate stack - see percona/docker-compose.percona.yml
+  # Start with: cd percona && docker-compose -f docker-compose.percona.yml up -d
+
+  rabbitmq:
+    image: rabbitmq:3
+    environment:
+      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_DEFAULT_VHOST}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - default
+
+  mautic_web:
+    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
+    volumes: *mautic-volumes
+    environment:
+      - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
+    env_file:
+      - .mautic_env
+    healthcheck:
+      test: curl http://localhost
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 100
+    networks:
+      - default
+      - web
+      - mautic-db-network
+    labels:
+      # Enable Traefik
+      - "traefik.enable=true"
+
+      # HTTPS Router
+      - "traefik.http.routers.mautic-dlgamer-https.rule=Host(`newsletter.dlgamer.com`)"
+      - "traefik.http.routers.mautic-dlgamer-https.entrypoints=https"
+      - "traefik.http.routers.mautic-dlgamer-https.tls=true"
+      - "traefik.http.routers.mautic-dlgamer-https.tls.certresolver=cloudflare"
+      - "traefik.http.routers.mautic-dlgamer-https.middlewares=secure-headers-dlgamer"
+
+      # Security Headers Middleware
+      - "traefik.http.middlewares.secure-headers-dlgamer.headers.stsincludesubdomains=true"
+      - "traefik.http.middlewares.secure-headers-dlgamer.headers.stspreload=true"
+      - "traefik.http.middlewares.secure-headers-dlgamer.headers.stsseconds=31536000"
+      - "traefik.http.middlewares.secure-headers-dlgamer.headers.forcestsheader=true"
+      - "traefik.http.middlewares.secure-headers-dlgamer.headers.framedeny=true"
+      - "traefik.http.middlewares.secure-headers-dlgamer.headers.contenttypenosniff=true"
+      - "traefik.http.middlewares.secure-headers-dlgamer.headers.browserxssfilter=true"
+      - "traefik.http.middlewares.secure-headers-dlgamer.headers.referrerpolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.secure-headers-dlgamer.headers.permissionspolicy=camera=(), microphone=(), geolocation=()"
+
+      # Service - specify the port
+      - "traefik.http.services.mautic-dlgamer.loadbalancer.server.port=80"
+
+      # Connect to the web network
+      - "traefik.docker.network=web"
+
+  mautic_cron:
+    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
+    volumes: *mautic-volumes
+    environment:
+      - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
+    env_file:
+      - .mautic_env
+    depends_on:
+      mautic_web:
+        condition: service_healthy
+    networks:
+      - default
+      - mautic-db-network
+    external_links:
+      - percona-db:mysql
+
+  mautic_worker:
+    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
+    volumes: *mautic-volumes
+    environment:
+      - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
+    env_file:
+      - .mautic_env
+    depends_on:
+      mautic_web:
+        condition: service_healthy
+    networks:
+      - default
+      - mautic-db-network
+    external_links:
+      - percona-db:mysql
+
+volumes:
+  rabbitmq-data:
+
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME}-docker
+  web:
+    external: true
+  mautic-db-network:
+    external: true
+    name: mautic-db-network
