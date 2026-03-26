@@ -1,0 +1,105 @@
+services:
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    restart: unless-stopped
+    
+    security_opt:
+      - no-new-privileges:true
+    
+    networks:
+      - web
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    environment:
+      # Timezone Configuration
+      - TZ=Europe/Brussels
+      
+      # Cloudflare Credentials
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    
+    volumes:
+      # Docker socket for service discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      
+      # Named volume for SSL certificates (persistent)
+      - traefik-certs:/letsencrypt
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    command:
+      # API and Dashboard
+      - --api.dashboard=true
+      - --api.insecure=false
+      
+      # Ping (required for healthcheck in v3)
+      - --ping=true
+
+      # Entry Points
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+
+      # HTTP to HTTPS redirect at entrypoint level
+      - --entrypoints.http.http.redirections.entrypoint.to=https
+      - --entrypoints.http.http.redirections.entrypoint.scheme=https
+      - --entrypoints.http.http.redirections.entrypoint.permanent=true
+      
+      # Docker Provider
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=web
+      
+      # Let's Encrypt with Cloudflare DNS Challenge
+      - --certificatesresolvers.cloudflare.acme.dnschallenge=true
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesresolvers.cloudflare.acme.email=${CF_API_EMAIL}
+      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
+      
+      # Logging (to stdout/stderr - viewable with docker logs)
+      - --log.level=INFO
+      - --log.format=json
+      - --accesslog=true
+      - --accesslog.format=json
+    
+    labels:
+      - "traefik.enable=true"
+
+      # Security Headers Middleware
+      - "traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.secure-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.secure-headers.headers.stsPreload=true"
+    
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+# Named volumes for persistent data
+volumes:
+  traefik-certs:
+    driver: local
+
+# External network (must be created beforehand)
+networks:
+  web:
+    external: true

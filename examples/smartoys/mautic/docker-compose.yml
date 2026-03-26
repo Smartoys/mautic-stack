@@ -42,12 +42,7 @@ services:
     labels:
       # Enable Traefik
       - "traefik.enable=true"
-      
-      # HTTP Router - redirects to HTTPS
-      - "traefik.http.routers.mautic-http.rule=Host(`newsletter.smartoys.be`)"
-      - "traefik.http.routers.mautic-http.entrypoints=http"
-      - "traefik.http.routers.mautic-http.middlewares=https-redirect"
-      
+
       # HTTPS Router
       - "traefik.http.routers.mautic-https.rule=Host(`newsletter.smartoys.be`)"
       - "traefik.http.routers.mautic-https.entrypoints=https"
