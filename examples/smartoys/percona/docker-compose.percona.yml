@@ -50,7 +50,7 @@ services:
       - --sql-mode=STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
       - --max_connections=200
       - --innodb_buffer_pool_size=1G
-      - --optimizer-switch="prefer_ordering_index=off,favor_range_scan=on"
+      - --optimizer-switch=prefer_ordering_index=off,favor_range_scan=on
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
