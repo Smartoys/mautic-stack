@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.3
+    image: traefik:v3.6
     container_name: traefik
     restart: unless-stopped
     
@@ -17,7 +17,10 @@ services:
     environment:
       # Timezone Configuration
       - TZ=Europe/Brussels
-      
+
+      # Force Docker API version (avoids "client version 1.24 is too old" error)
+      - DOCKER_API_VERSION=1.45
+
       # Cloudflare Credentials
       - CF_API_EMAIL=${CF_API_EMAIL}
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
