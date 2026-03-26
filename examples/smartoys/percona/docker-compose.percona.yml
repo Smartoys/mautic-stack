@@ -1,10 +1,34 @@
 version: '3.8'
 
 services:
+  reports-perms:
+    image: alpine:3.20
+    user: "0:0"
+    restart: "no"
+    volumes:
+      - mautic-db-reports:/reports
+    command: >
+      sh -lc "mkdir -p /reports &&
+              chown -R 1001:1001 /reports &&
+              chmod -R u+rwX,g+rwX /reports"
+  mysql-logs-perms:
+    image: alpine:3.20
+    container_name: mysql-logs-perms
+    user: "0:0"
+    restart: "no"
+    volumes:
+      - mautic-db-logs:/var/log/mysql
+    command: >
+      sh -lc "mkdir -p /var/log/mysql &&
+              chown -R 1001:1001 /var/log/mysql &&
+              chmod 775 /var/log/mysql"
   percona-db:
-    image: percona/percona-server:8.0.44
+    image: percona/percona-server:8.4
     container_name: percona-db
     restart: unless-stopped
+    depends_on:
+      mysql-logs-perms:
+        condition: service_completed_successfully    
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
@@ -16,6 +40,7 @@ services:
     ports:
       - "3306:3306"
     command:
+      - --mysql-native-password=ON      
       - --slow_query_log=1
       - --slow_query_log_file=/var/log/mysql/mysql-slow.log
       - --long_query_time=1
@@ -25,6 +50,7 @@ services:
       - --sql-mode=STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
       - --max_connections=200
       - --innodb_buffer_pool_size=1G
+      - --optimizer-switch="prefer_ordering_index=off,favor_range_scan=on"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
@@ -51,6 +77,8 @@ services:
     networks:
       - mautic-db-network
     depends_on:
+      reports-perms:
+        condition: service_completed_successfully    
       percona-db:
         condition: service_healthy
 
