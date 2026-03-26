@@ -3,13 +3,13 @@ name: Build and publish a Docker image
 on:
   push:
     branches:
-      - v6
+      - v7
   workflow_dispatch:
     inputs:
       mautic_version:
         description: 'Mautic version (has to be a valid version from `mautic/recommended-project`)'
         required: false
-        default: '6.0.7'
+        default: '7.0.1'
       overwrite_latest_major:
         type: boolean
         description: "Overwrite latest major tag (e.g.`5`). This should only be checked if you're releasing the latest release."
@@ -44,7 +44,7 @@ jobs:
             VERSION="${{ inputs.mautic_version }}"
           else
             # For automatic builds, use default version
-            VERSION="6.0.7"
+            VERSION="7.0.1"
           fi
           echo "MAUTIC_VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -172,7 +172,7 @@ jobs:
             VERSION="${{ inputs.mautic_version }}"
           else
             # For automatic builds, use default version
-            VERSION="6.0.7"
+            VERSION="7.0.1"
           fi
           echo "MAUTIC_VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT

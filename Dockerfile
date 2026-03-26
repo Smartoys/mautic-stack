@@ -1,5 +1,5 @@
 # Define base image verison
-ARG BASE_TAG=8.3-apache-bookworm
+ARG BASE_TAG=8.4-apache-bookworm
 
 FROM php:${BASE_TAG} AS builder
 
@@ -59,7 +59,7 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin -
 RUN echo "memory_limit = -1" > /usr/local/etc/php/php.ini
 
 # Define Mautic version by package tag
-ARG MAUTIC_VERSION=6.x-dev
+ARG MAUTIC_VERSION=7.0.1
 
 RUN cd /opt && \
     COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=10000 composer create-project mautic/recommended-project:${MAUTIC_VERSION} mautic --no-interaction && \

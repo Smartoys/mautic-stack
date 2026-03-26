@@ -23,7 +23,7 @@ services:
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
     # Images are private and require GHCR authentication
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
-    image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
+    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
     volumes: *mautic-volumes
     environment:
       - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
@@ -71,7 +71,7 @@ services:
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
     # Images are private and require GHCR authentication
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
-    image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
+    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
     volumes: *mautic-volumes
     environment:
       - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
@@ -90,7 +90,7 @@ services:
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
     # Images are private and require GHCR authentication
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
-    image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
+    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
     volumes: *mautic-volumes
     environment:
       - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
