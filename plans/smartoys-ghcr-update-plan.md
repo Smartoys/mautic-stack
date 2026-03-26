@@ -2,7 +2,7 @@
 
 ## Context
 
-The smartoys example currently uses the official Mautic Docker Hub images (`mautic/mautic:6.0.7-apache`). We need to update it to use custom images from GitHub Container Registry (GHCR) that are built by the repository's CI/CD workflow.
+The smartoys example currently uses the official Mautic Docker Hub images (`mautic/mautic:7.0.1-apache`). We need to update it to use custom images from GitHub Container Registry (GHCR) that are built by the repository's CI/CD workflow.
 
 ## Current State
 
@@ -11,9 +11,9 @@ The smartoys example currently uses the official Mautic Docker Hub images (`maut
 
 ### Current Image References
 All three Mautic services use the same image:
-- **mautic_web** (line 22): `image: mautic/mautic:6.0.7-apache`
-- **mautic_cron** (line 77): `image: mautic/mautic:6.0.7-apache`
-- **mautic_worker** (line 108): `image: mautic/mautic:6.0.7-apache`
+- **mautic_web** (line 22): `image: mautic/mautic:7.0.1-apache`
+- **mautic_cron** (line 77): `image: mautic/mautic:7.0.1-apache`
+- **mautic_worker** (line 108): `image: mautic/mautic:7.0.1-apache`
 
 ## GHCR Image Details
 
@@ -24,10 +24,10 @@ All three Mautic services use the same image:
 ### Available Tag Patterns
 Based on the GitHub workflow configuration, images are tagged with:
 
-1. **Specific Version**: `6.0.7-apache`
-2. **Version with Build Date**: `6.0.7-YYYYMMDD-apache` (e.g., `6.0.7-20260103-apache`)
-3. **Major Version** (if enabled): `6-apache`
-4. **Minor Version** (if enabled): `6.0-apache`
+1. **Specific Version**: `7.0.1-apache`
+2. **Version with Build Date**: `7.0.1-YYYYMMDD-apache` (e.g., `7.0.1-20260326-apache`)
+3. **Major Version** (if enabled): `7-apache`
+4. **Minor Version** (if enabled): `7.0-apache`
 5. **Latest** (if enabled): `latest-apache`
 
 ### Image Variant
@@ -39,7 +39,7 @@ Based on the GitHub workflow configuration, images are tagged with:
 
 **Option 1: Specific Version Tag (Recommended for Production)**
 ```yaml
-image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
+image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
 ```
 - ✅ Predictable and reproducible
 - ✅ Explicit version control
@@ -47,7 +47,7 @@ image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
 
 **Option 2: Major Version Tag (Auto-updates within major version)**
 ```yaml
-image: ghcr.io/smartoys/mautic-stack:6-apache
+image: ghcr.io/smartoys/mautic-stack:7-apache
 ```
 - ✅ Automatically gets latest 6.x updates
 - ⚠️ May introduce breaking changes within major version
@@ -55,7 +55,7 @@ image: ghcr.io/smartoys/mautic-stack:6-apache
 
 **Option 3: Minor Version Tag (Auto-updates patch versions)**
 ```yaml
-image: ghcr.io/smartoys/mautic-stack:6.0-apache
+image: ghcr.io/smartoys/mautic-stack:7.0-apache
 ```
 - ✅ Automatically gets patch updates
 - ✅ Less likely to break than major version tag
@@ -82,7 +82,7 @@ If the images are private, add authentication to docker-compose.yml:
 ```yaml
 services:
   mautic_web:
-    image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
+    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
     pull_policy: always
     # ... rest of config
 ```
@@ -113,7 +113,7 @@ Add comments explaining:
 - Confirm multi-architecture support if needed (workflow builds for linux/amd64 and linux/arm64)
 
 ### Pull Policy
-Consider adding `pull_policy: always` to ensure latest image is pulled, especially for mutable tags like `6-apache`.
+Consider adding `pull_policy: always` to ensure latest image is pulled, especially for mutable tags like `7-apache`.
 
 ### Image Registry Fallback
 If GHCR is unavailable, consider having a fallback strategy or local image cache.
@@ -123,9 +123,9 @@ If GHCR is unavailable, consider having a fallback strategy or local image cache
 ```mermaid
 graph TD
     A[Start: Current Config] --> B{Choose Tag Strategy}
-    B -->|Specific Version| C[Use 6.0.7-apache]
-    B -->|Major Version| D[Use 6-apache]
-    B -->|Minor Version| E[Use 6.0-apache]
+    B -->|Specific Version| C[Use 7.0.1-apache]
+    B -->|Major Version| D[Use 7-apache]
+    B -->|Minor Version| E[Use 7.0-apache]
     
     C --> F[Update 3 Service Images]
     D --> F
@@ -146,9 +146,9 @@ graph TD
 ## Questions to Answer
 
 1. Which tag strategy do you prefer?
-   - Specific version (e.g., `6.0.7-apache`)
-   - Major version (e.g., `6-apache`)
-   - Minor version (e.g., `6.0-apache`)
+   - Specific version (e.g., `7.0.1-apache`)
+   - Major version (e.g., `7-apache`)
+   - Minor version (e.g., `7.0-apache`)
 
 2. Are the GHCR images public or private?
    - Determines if authentication is needed

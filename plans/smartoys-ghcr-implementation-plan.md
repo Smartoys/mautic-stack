@@ -6,7 +6,7 @@ Update the Smartoys docker-compose.yml to use custom Mautic images from GitHub C
 
 ## Decisions Made
 
-✅ **Image Tag**: `ghcr.io/smartoys/mautic-stack:6.0.7-apache`  
+✅ **Image Tag**: `ghcr.io/smartoys/mautic-stack:7.0.1-apache`  
 ✅ **Visibility**: Private (requires authentication)  
 ✅ **Services to Update**: mautic_web, mautic_cron, mautic_worker
 
@@ -21,31 +21,31 @@ Update the Smartoys docker-compose.yml to use custom Mautic images from GitHub C
 #### Service: mautic_web (Line 22)
 ```yaml
 # BEFORE:
-image: mautic/mautic:6.0.7-apache
+image: mautic/mautic:7.0.1-apache
 
 # AFTER:
 # Custom Mautic image from https://github.com/Smartoys/mautic-stack
-image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
+image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
 ```
 
 #### Service: mautic_cron (Line 77)
 ```yaml
 # BEFORE:
-image: mautic/mautic:6.0.7-apache
+image: mautic/mautic:7.0.1-apache
 
 # AFTER:
 # Custom Mautic image from https://github.com/Smartoys/mautic-stack
-image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
+image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
 ```
 
 #### Service: mautic_worker (Line 108)
 ```yaml
 # BEFORE:
-image: mautic/mautic:6.0.7-apache
+image: mautic/mautic:7.0.1-apache
 
 # AFTER:
 # Custom Mautic image from https://github.com/Smartoys/mautic-stack
-image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
+image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
 ```
 
 ### 2. GHCR Authentication Setup
@@ -159,7 +159,7 @@ Add comments above each image line:
 # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
 # Images are private and require GHCR authentication
 # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
-image: ghcr.io/smartoys/mautic-stack:6.0.7-apache
+image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
 ```
 
 ### Create Authentication Guide
@@ -195,7 +195,7 @@ This deployment uses custom Mautic images from GitHub Container Registry.
 
 - **Repository**: https://github.com/Smartoys/mautic-stack
 - **Registry**: ghcr.io/smartoys/mautic-stack
-- **Current Version**: 6.0.7-apache
+- **Current Version**: 7.0.1-apache
 ```
 
 ## Testing Checklist
@@ -216,7 +216,7 @@ If issues occur, revert to official Docker Hub images:
 
 ```yaml
 # Rollback to official images
-image: mautic/mautic:6.0.7-apache
+image: mautic/mautic:7.0.1-apache
 ```
 
 Then:
