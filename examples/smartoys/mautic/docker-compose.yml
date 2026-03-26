@@ -49,7 +49,12 @@ services:
       - "traefik.http.routers.mautic-https.tls=true"
       - "traefik.http.routers.mautic-https.tls.certresolver=cloudflare"
       - "traefik.http.routers.mautic-https.middlewares=secure-headers"
-      
+
+      # Security Headers Middleware
+      - "traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.secure-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.secure-headers.headers.stsPreload=true"
+
       # Service - specify the port
       - "traefik.http.services.mautic.loadbalancer.server.port=80"
       

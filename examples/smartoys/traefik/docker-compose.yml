@@ -75,11 +75,6 @@ services:
     
     labels:
       - "traefik.enable=true"
-
-      # Security Headers Middleware
-      - "traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000"
-      - "traefik.http.middlewares.secure-headers.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.secure-headers.headers.stsPreload=true"
     
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
