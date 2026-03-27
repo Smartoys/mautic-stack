@@ -13,16 +13,21 @@
 
 # Run Mautic migrations inside the Mautic Docker container
 # 1. Clear cache first (important!)
+
 docker exec -it mautic-smartoys-mautic_web-1 php bin/console cache:clear
+docker exec -it -u www-data mautic-smart-mautic_web-1
 
 # 2. Check migration status (see what's pending)
 docker exec -it mautic-smartoys-mautic_web-1 php bin/console mautic:update:apply --finish
+docker exec -it -u www-data mautic-smart-mautic_web-1 php bin/console mautic:update:apply --finish
 
 # 3. Run migrations
 docker exec -it mautic-smartoys-mautic_web-1 php bin/console doctrine:migrations:migrate --no-interaction
+docker exec -it -u www-data mautic-smart-mautic_web-1 php bin/console doctrine:migrations:migrate --no-interaction
 
 # 5. Clear cache again
 docker exec -it mautic-smartoys-mautic_web-1 php bin/console cache:clear
+docker exec -it -u www-data mautic-smart-mautic_web-1
 
 # Optional: Open a bash shell inside the Mautic Docker container for further inspection
 docker exec -it mautic-smartoys-mautic_web-1 bash
