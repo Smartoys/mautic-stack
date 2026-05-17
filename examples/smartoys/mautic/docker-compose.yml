@@ -19,6 +19,17 @@ services:
     networks:
       - default
 
+  smtprelay:
+    image: mwader/postfix-relay
+    hostname: mauticsmtp
+    environment:
+      - POSTFIX_myhostname=mailing.smartoys.be
+      - OPENDKIM_DOMAINS=smartoys.be gamecash.be gamecash.fr
+    volumes:
+      - /portainer/${COMPOSE_PROJECT_NAME}-postfix/opendkim_keys:/etc/opendkim/keys:ro
+    networks:
+      - default
+
   mautic_web:
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
     # Images are private and require GHCR authentication
