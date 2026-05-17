@@ -43,7 +43,7 @@ services:
       - "traefik.enable=true"
 
       # HTTPS Router
-      - "traefik.http.routers.mautic-https.rule=Host(`newsletter.smartoys.be`)"
+      - "traefik.http.routers.mautic-https.rule=Host(`mailing.smartoys.be`)"
       - "traefik.http.routers.mautic-https.entrypoints=https"
       - "traefik.http.routers.mautic-https.tls=true"
       - "traefik.http.routers.mautic-https.tls.certresolver=cloudflare"
