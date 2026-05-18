@@ -10,22 +10,13 @@ services:
   # Database moved to separate stack - see percona/docker-compose.percona.yml
   # Start with: cd percona && docker-compose -f docker-compose.percona.yml up -d
 
-  rabbitmq:
-    image: rabbitmq:3
-    environment:
-      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_DEFAULT_VHOST}
-    volumes: 
-      - rabbitmq-data:/var/lib/rabbitmq
-    networks:
-      - default
-    restart: unless-stopped
-
   smtprelay:
     image: mwader/postfix-relay
     hostname: mauticsmtp
     environment:
       - POSTFIX_myhostname=mailing.smartoys.be
       - OPENDKIM_DOMAINS=smartoys.be gamecash.be gamecash.fr
+      - POSTFIX_inet_protocols=ipv4       
     volumes:
       - /portainer/${COMPOSE_PROJECT_NAME}-postfix/opendkim_keys:/etc/opendkim/keys:ro
     networks:
@@ -119,9 +110,6 @@ services:
     restart: unless-stopped  
     external_links:
       - percona-db:mysql
-
-volumes:
-  rabbitmq-data:
 
 networks:
   default:
