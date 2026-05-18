@@ -18,6 +18,7 @@ services:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - default
+    restart: unless-stopped
 
   smtprelay:
     image: mwader/postfix-relay
@@ -29,6 +30,7 @@ services:
       - /portainer/${COMPOSE_PROJECT_NAME}-postfix/opendkim_keys:/etc/opendkim/keys:ro
     networks:
       - default
+    restart: unless-stopped  
 
   mautic_web:
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
@@ -49,6 +51,7 @@ services:
       - default
       - web
       - mautic-db-network
+    restart: unless-stopped  
     labels:
       # Enable Traefik
       - "traefik.enable=true"
@@ -83,6 +86,8 @@ services:
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
     image: mautic/mautic:7.1.1-apache
     volumes: *mautic-volumes
+    environment:
+      - DOCKER_MAUTIC_ROLE=mautic_cron    
     env_file:
       - .mautic_env
     depends_on:
@@ -91,6 +96,7 @@ services:
     networks:
       - default
       - mautic-db-network
+    restart: unless-stopped  
     external_links:
       - percona-db:mysql
 
@@ -100,6 +106,8 @@ services:
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
     image: mautic/mautic:7.1.1-apache
     volumes: *mautic-volumes
+    environment:
+      - DOCKER_MAUTIC_ROLE=mautic_worker    
     env_file:
       - .mautic_env
     depends_on:
@@ -108,6 +116,7 @@ services:
     networks:
       - default
       - mautic-db-network
+    restart: unless-stopped  
     external_links:
       - percona-db:mysql
 
