@@ -44,25 +44,26 @@ services:
       - "traefik.enable=true"
 
       # HTTPS Router
-      - "traefik.http.routers.mautic-https.rule=Host(`mailing.dlgamer.com`)"
-      - "traefik.http.routers.mautic-https.entrypoints=https"
-      - "traefik.http.routers.mautic-https.tls=true"
-      - "traefik.http.routers.mautic-https.tls.certresolver=cloudflare"
-      - "traefik.http.routers.mautic-https.middlewares=secure-headers"
+      - "traefik.http.routers.mautic-dlgamer-https.rule=Host(`mailing.dlgamer.com`)"
+      - "traefik.http.routers.mautic-dlgamer-https.entrypoints=https"
+      - "traefik.http.routers.mautic-dlgamer-https.tls=true"
+      - "traefik.http.routers.mautic-dlgamer-https.tls.certresolver=cloudflare"
+      - "traefik.http.routers.mautic-dlgamer-https.middlewares=mautic-dlgamer-secure-headers"
+      - "traefik.http.routers.mautic-dlgamer-https.service=mautic-dlgamer"
 
       # Security Headers Middleware
-      - "traefik.http.middlewares.secure-headers.headers.stsincludesubdomains=true"
-      - "traefik.http.middlewares.secure-headers.headers.stspreload=true"
-      - "traefik.http.middlewares.secure-headers.headers.stsseconds=31536000"
-      - "traefik.http.middlewares.secure-headers.headers.forcestsheader=true"
-      - "traefik.http.middlewares.secure-headers.headers.framedeny=true"
-      - "traefik.http.middlewares.secure-headers.headers.contenttypenosniff=true"
-      - "traefik.http.middlewares.secure-headers.headers.browserxssfilter=true"
-      - "traefik.http.middlewares.secure-headers.headers.referrerpolicy=strict-origin-when-cross-origin"
-      - "traefik.http.middlewares.secure-headers.headers.permissionspolicy=camera=(), microphone=(), geolocation=()"
+      - "traefik.http.middlewares.mautic-dlgamer-secure-headers.headers.stsincludesubdomains=true"
+      - "traefik.http.middlewares.mautic-dlgamer-secure-headers.headers.stspreload=true"
+      - "traefik.http.middlewares.mautic-dlgamer-secure-headers.headers.stsseconds=31536000"
+      - "traefik.http.middlewares.mautic-dlgamer-secure-headers.headers.forcestsheader=true"
+      - "traefik.http.middlewares.mautic-dlgamer-secure-headers.headers.framedeny=true"
+      - "traefik.http.middlewares.mautic-dlgamer-secure-headers.headers.contenttypenosniff=true"
+      - "traefik.http.middlewares.mautic-dlgamer-secure-headers.headers.browserxssfilter=true"
+      - "traefik.http.middlewares.mautic-dlgamer-secure-headers.headers.referrerpolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.mautic-dlgamer-secure-headers.headers.permissionspolicy=camera=(), microphone=(), geolocation=()"
 
       # Service - specify the port
-      - "traefik.http.services.mautic.loadbalancer.server.port=80"
+      - "traefik.http.services.mautic-dlgamer.loadbalancer.server.port=80"
       
       # Connect to the web network
       - "traefik.docker.network=web"
