@@ -10,65 +10,68 @@ services:
   # Database moved to separate stack - see percona/docker-compose.percona.yml
   # Start with: cd percona && docker-compose -f docker-compose.percona.yml up -d
 
-  rabbitmq:
-    image: rabbitmq:3
+  smtprelay:
+    image: mwader/postfix-relay
+    hostname: mauticsmtp
     environment:
-      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_DEFAULT_VHOST}
+      - POSTFIX_myhostname=mailing.dlgamer.com
+      - OPENDKIM_DOMAINS=dlgamer.com
+      - POSTFIX_inet_protocols=ipv4       
     volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
+      - /portainer/${COMPOSE_PROJECT_NAME}-postfix/opendkim_keys:/etc/opendkim/keys:ro
     networks:
       - default
+    restart: unless-stopped  
 
   mautic_web:
-    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
+    image: mautic/mautic:7.1.1-apache
     volumes: *mautic-volumes
-    environment:
-      - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
     env_file:
       - .mautic_env
     healthcheck:
-      test: curl http://localhost
-      start_period: 5s
-      interval: 5s
+      test: ["CMD-SHELL", "curl -fsS -H 'Host: mailing.dlgamer.com' http://localhost/ -o /dev/null"]
+      start_period: 30s
+      interval: 30s
       timeout: 5s
-      retries: 100
+      retries: 5
     networks:
       - default
       - web
       - mautic-db-network
+    restart: unless-stopped  
     labels:
       # Enable Traefik
       - "traefik.enable=true"
 
       # HTTPS Router
-      - "traefik.http.routers.mautic-dlgamer-https.rule=Host(`newsletter.dlgamer.com`)"
-      - "traefik.http.routers.mautic-dlgamer-https.entrypoints=https"
-      - "traefik.http.routers.mautic-dlgamer-https.tls=true"
-      - "traefik.http.routers.mautic-dlgamer-https.tls.certresolver=cloudflare"
-      - "traefik.http.routers.mautic-dlgamer-https.middlewares=secure-headers-dlgamer"
+      - "traefik.http.routers.mautic-https.rule=Host(`mailing.dlgamer.com`)"
+      - "traefik.http.routers.mautic-https.entrypoints=https"
+      - "traefik.http.routers.mautic-https.tls=true"
+      - "traefik.http.routers.mautic-https.tls.certresolver=cloudflare"
+      - "traefik.http.routers.mautic-https.middlewares=secure-headers"
 
       # Security Headers Middleware
-      - "traefik.http.middlewares.secure-headers-dlgamer.headers.stsincludesubdomains=true"
-      - "traefik.http.middlewares.secure-headers-dlgamer.headers.stspreload=true"
-      - "traefik.http.middlewares.secure-headers-dlgamer.headers.stsseconds=31536000"
-      - "traefik.http.middlewares.secure-headers-dlgamer.headers.forcestsheader=true"
-      - "traefik.http.middlewares.secure-headers-dlgamer.headers.framedeny=true"
-      - "traefik.http.middlewares.secure-headers-dlgamer.headers.contenttypenosniff=true"
-      - "traefik.http.middlewares.secure-headers-dlgamer.headers.browserxssfilter=true"
-      - "traefik.http.middlewares.secure-headers-dlgamer.headers.referrerpolicy=strict-origin-when-cross-origin"
-      - "traefik.http.middlewares.secure-headers-dlgamer.headers.permissionspolicy=camera=(), microphone=(), geolocation=()"
+      - "traefik.http.middlewares.secure-headers.headers.stsincludesubdomains=true"
+      - "traefik.http.middlewares.secure-headers.headers.stspreload=true"
+      - "traefik.http.middlewares.secure-headers.headers.stsseconds=31536000"
+      - "traefik.http.middlewares.secure-headers.headers.forcestsheader=true"
+      - "traefik.http.middlewares.secure-headers.headers.framedeny=true"
+      - "traefik.http.middlewares.secure-headers.headers.contenttypenosniff=true"
+      - "traefik.http.middlewares.secure-headers.headers.browserxssfilter=true"
+      - "traefik.http.middlewares.secure-headers.headers.referrerpolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.secure-headers.headers.permissionspolicy=camera=(), microphone=(), geolocation=()"
 
       # Service - specify the port
-      - "traefik.http.services.mautic-dlgamer.loadbalancer.server.port=80"
-
+      - "traefik.http.services.mautic.loadbalancer.server.port=80"
+      
       # Connect to the web network
       - "traefik.docker.network=web"
 
   mautic_cron:
-    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
+    image: mautic/mautic:7.1.1-apache
     volumes: *mautic-volumes
     environment:
-      - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
+      - DOCKER_MAUTIC_ROLE=mautic_cron    
     env_file:
       - .mautic_env
     depends_on:
@@ -77,27 +80,32 @@ services:
     networks:
       - default
       - mautic-db-network
+    restart: unless-stopped  
     external_links:
       - percona-db:mysql
 
   mautic_worker:
-    image: ghcr.io/smartoys/mautic-stack:7.0.1-apache
+    image: mautic/mautic:7.1.1-apache
     volumes: *mautic-volumes
     environment:
-      - DOCKER_MAUTIC_LOAD_TEST_DATA=${DOCKER_MAUTIC_LOAD_TEST_DATA}
+      - DOCKER_MAUTIC_ROLE=mautic_worker    
     env_file:
       - .mautic_env
     depends_on:
       mautic_web:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'messenger:consume' > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      retries: 3
     networks:
       - default
       - mautic-db-network
+    restart: unless-stopped  
     external_links:
       - percona-db:mysql
-
-volumes:
-  rabbitmq-data:
 
 networks:
   default:
