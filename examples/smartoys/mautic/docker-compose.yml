@@ -33,11 +33,11 @@ services:
     env_file:
       - .mautic_env
     healthcheck:
-      test: curl http://localhost
-      start_period: 5s
-      interval: 5s
+      test: ["CMD-SHELL", "curl -fsS -H 'Host: mailing.smartoys.be' http://localhost/ -o /dev/null"]
+      start_period: 30s
+      interval: 30s
       timeout: 5s
-      retries: 100
+      retries: 5
     networks:
       - default
       - web
@@ -104,6 +104,12 @@ services:
     depends_on:
       mautic_web:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'messenger:consume' > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      retries: 3
     networks:
       - default
       - mautic-db-network
