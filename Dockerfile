@@ -172,6 +172,24 @@ RUN if [ "$FLAVOUR" = "apache" ]; then \
         && a2enmod rewrite; \
     fi
 
+# Apache MPM prefork tuning. mod_php requires prefork (not event), so each
+# concurrent request is a full process holding the PHP interpreter. Defaults
+# (MaxRequestWorkers=150, MaxConnectionsPerChild=0) can saturate under tracker
+# traffic; bump pool size and recycle workers periodically to bound memory growth.
+RUN if [ "$FLAVOUR" = "apache" ]; then \
+        printf '%s\n' \
+            '<IfModule mpm_prefork_module>' \
+            '    StartServers              8' \
+            '    MinSpareServers           5' \
+            '    MaxSpareServers          20' \
+            '    ServerLimit             200' \
+            '    MaxRequestWorkers       200' \
+            '    MaxConnectionsPerChild 1000' \
+            '</IfModule>' \
+            > /etc/apache2/conf-available/mpm-tuning.conf \
+        && a2enconf mpm-tuning; \
+    fi
+
 # Set correct ownership for Mautic var folder
 RUN chown -R www-data:www-data /var/www/html/var/
 
