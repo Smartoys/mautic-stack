@@ -40,7 +40,8 @@ services:
     ports:
       - "3306:3306"
     command:
-      - --mysql-native-password=ON      
+      - --mysql-native-password=ON
+      - --skip-log-bin
       - --slow_query_log=1
       - --slow_query_log_file=/var/log/mysql/mysql-slow.log
       - --long_query_time=1
