@@ -47,7 +47,7 @@ services:
     # Images are private and require GHCR authentication
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
     # ghcr.io/smartoys/mautic-stack:7.0.1-apache
-    image: mautic/mautic:7.1.1-apache
+    image: ghcr.io/smartoys/mautic-stack:7.1.1-apache
     volumes: *mautic-volumes
     env_file:
       - .mautic_env
@@ -98,10 +98,10 @@ services:
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
     # Images are private and require GHCR authentication
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
-    image: mautic/mautic:7.1.1-apache
+    image: ghcr.io/smartoys/mautic-stack:7.1.1-apache
     volumes: *mautic-volumes
     environment:
-      - DOCKER_MAUTIC_ROLE=mautic_cron    
+      - DOCKER_MAUTIC_ROLE=mautic_cron
     env_file:
       - .mautic_env
     depends_on:
@@ -120,10 +120,10 @@ services:
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
     # Images are private and require GHCR authentication
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
-    image: mautic/mautic:7.1.1-apache
+    image: ghcr.io/smartoys/mautic-stack:7.1.1-apache
     volumes: *mautic-volumes
     environment:
-      - DOCKER_MAUTIC_ROLE=mautic_worker    
+      - DOCKER_MAUTIC_ROLE=mautic_worker
     env_file:
       - .mautic_env
     depends_on:
