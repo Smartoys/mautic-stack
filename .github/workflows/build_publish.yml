@@ -224,7 +224,7 @@ jobs:
         with:
           file: Dockerfile
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           build-args: |
             BASE_TAG=${{ env.PHPVER }}-${{ matrix.image_type }}-bookworm
             MAUTIC_VERSION=${{ env.MAUTIC_VERSION }}
