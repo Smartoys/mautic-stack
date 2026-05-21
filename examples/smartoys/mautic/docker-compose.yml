@@ -10,6 +10,25 @@ services:
   # Database moved to separate stack - see percona/docker-compose.percona.yml
   # Start with: cd percona && docker-compose -f docker-compose.percona.yml up -d
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_DEFAULT_VHOST}
+    volumes:
+      - /portainer/${COMPOSE_PROJECT_NAME}-rabbitmq:/var/lib/rabbitmq:z
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+    restart: unless-stopped
+
   smtprelay:
     image: mwader/postfix-relay
     hostname: mauticsmtp
@@ -38,11 +57,14 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     networks:
       - default
       - web
       - mautic-db-network
-    restart: unless-stopped  
+    restart: unless-stopped
     labels:
       # Enable Traefik
       - "traefik.enable=true"
@@ -85,10 +107,12 @@ services:
     depends_on:
       mautic_web:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - default
       - mautic-db-network
-    restart: unless-stopped  
+    restart: unless-stopped
     external_links:
       - percona-db:mysql
 
@@ -104,6 +128,8 @@ services:
       - .mautic_env
     depends_on:
       mautic_web:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'messenger:consume' > /dev/null || exit 1"]

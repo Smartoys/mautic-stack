@@ -13,6 +13,8 @@ PHP_INI_VALUE_LOG_ERRORS=On
 PHP_INI_VALUE_ERROR_LOG=/dev/stdout
 DOCKER_MAUTIC_LOAD_TEST_DATA=False 
 
-# commented causes php bin/console mautic:update:apply --finish to fail
-#MAUTIC_MESSENGER_DSN_EMAIL="amqp://guest:guest@rabbitmq:5672/mautic/messages"
-#MAUTIC_MESSENGER_DSN_HIT="amqp://guest:guest@rabbitmq:5672/mautic/messages"
+# MAUTIC_MESSENGER_DSN_* are set in docker-compose.yml via environment:
+# (env_file does not interpolate ${...}, so DSN lives where it can reference
+# RABBITMQ_* from .env). To disable AMQP temporarily before running
+# `mautic:update:apply --finish`, edit docker-compose.yml or override with
+# `docker compose run -e MAUTIC_MESSENGER_DSN_EMAIL=doctrine://default ...`.
