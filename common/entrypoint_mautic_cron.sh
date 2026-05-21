@@ -5,7 +5,15 @@
 
 mkdir -p /opt/mautic/cron
 
-if [ ! -f /opt/mautic/cron/mautic  ]; then
+# Seed cron file from the baked-in template.
+# Set DOCKER_MAUTIC_RESET_CRON=true to force overwrite from /templates/mautic_cron
+# on every start (useful when the image template has been updated and you want
+# to adopt the new schedule). A timestamped backup is kept beside the file.
+if [ "${DOCKER_MAUTIC_RESET_CRON:-false}" = "true" ] && [ -f /opt/mautic/cron/mautic ]; then
+  cp -p /opt/mautic/cron/mautic "/opt/mautic/cron/mautic.bak.$(date -u +%Y%m%dT%H%M%SZ)"
+  cp -p /templates/mautic_cron /opt/mautic/cron/mautic
+  echo "[entrypoint_mautic_cron] DOCKER_MAUTIC_RESET_CRON=true — overwrote /opt/mautic/cron/mautic from template (backup saved)"
+elif [ ! -f /opt/mautic/cron/mautic ]; then
   cp -p /templates/mautic_cron /opt/mautic/cron/mautic
 fi
 

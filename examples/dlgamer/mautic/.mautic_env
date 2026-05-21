@@ -11,11 +11,14 @@ PHP_INI_VALUE_MEMORY_LIMIT=2G
 PHP_INI_VALUE_MAX_EXECUTION_TIME=3600
 PHP_INI_VALUE_LOG_ERRORS=On
 PHP_INI_VALUE_ERROR_LOG=/dev/stdout
-DOCKER_MAUTIC_LOAD_TEST_DATA=False 
+DOCKER_MAUTIC_LOAD_TEST_DATA=False
+
+# Set to true to overwrite /opt/mautic/cron/mautic from the baked-in template
+# on the next mautic_cron container start. Use after the image's cron template
+# has been updated and you want existing deployments to adopt the new schedule.
+# Remember to set back to false (or unset) afterwards to preserve local edits.
+#DOCKER_MAUTIC_RESET_CRON=false
 
 # Messenger DSNs live in /portainer/${COMPOSE_PROJECT_NAME}-mautic/config/local.php
-# (env_file does not interpolate ${...}; local.php takes precedence anyway).
-# Required keys: messenger_dsn_email, messenger_dsn_hit, messenger_dsn_failed
-# Format: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/${VHOST}/<queue>
-# Before `mautic:update:apply --finish`, temporarily set these to
-# doctrine://default to avoid the historical AMQP-during-update failure.
+# Local.php file should be set manually
+# mautic stats in install mode as long as no domain name is set

@@ -11,7 +11,13 @@ PHP_INI_VALUE_MEMORY_LIMIT=2G
 PHP_INI_VALUE_MAX_EXECUTION_TIME=3600
 PHP_INI_VALUE_LOG_ERRORS=On
 PHP_INI_VALUE_ERROR_LOG=/dev/stdout
-DOCKER_MAUTIC_LOAD_TEST_DATA=False 
+DOCKER_MAUTIC_LOAD_TEST_DATA=False
+
+# Set to true to overwrite /opt/mautic/cron/mautic from the baked-in template
+# on the next mautic_cron container start. Use after the image's cron template
+# has been updated and you want existing deployments to adopt the new schedule.
+# Remember to set back to false (or unset) afterwards to preserve local edits.
+#DOCKER_MAUTIC_RESET_CRON=false
 
 # MAUTIC_MESSENGER_DSN_* are set in docker-compose.yml via environment:
 # (env_file does not interpolate ${...}, so DSN lives where it can reference
