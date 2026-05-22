@@ -27,9 +27,5 @@ fi
 # create the fifo file to be able to redirect cron output for non-root users
 mkfifo /tmp/stdout
 chmod 777 /tmp/stdout
-
-# ensure the PHP env vars are present during cronjobs
-declare -p | grep 'PHP_INI_VALUE_' > /tmp/cron.env
-
 # run cron and print the output
 cron -f | tail -f /tmp/stdout
