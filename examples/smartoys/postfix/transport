@@ -1,0 +1,27 @@
+# Postfix transport map: route per-domain traffic through throttled transports.
+# Format: <recipient-domain>  <transport>:[nexthop]
+# Loaded via texthash:/etc/postfix/transport (no postmap step required).
+
+# Free.fr and its aliases — most aggressive rate-limiter ("451 too many errors")
+free.fr               slow-free:
+wanadoo.fr            slow-free:
+orange.fr             slow-free:
+aliceadsl.fr          slow-free:
+
+# SFR / Numericable family — "SFR_IN_104 bad behavior" trigger
+sfr.fr                slow-sfr:
+neuf.fr               slow-sfr:
+club-internet.fr      slow-sfr:
+laposte.net           slow-sfr:
+
+# Microsoft consumer
+hotmail.com           slow-msft:
+hotmail.fr            slow-msft:
+live.fr               slow-msft:
+live.com              slow-msft:
+outlook.com           slow-msft:
+outlook.fr            slow-msft:
+
+# Google consumer
+gmail.com             slow-google:
+googlemail.com        slow-google:

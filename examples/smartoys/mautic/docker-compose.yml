@@ -43,9 +43,17 @@ services:
       # envelope_sender keeps the visible From: header untouched.
       - POSTFIX_sender_canonical_maps=regexp:/etc/postfix/sender_canonical
       - POSTFIX_sender_canonical_classes=envelope_sender
+      # Global per-destination throttle: cap concurrency and pace messages.
+      # Per-ISP overrides live in master.cf (slow-*) + transport map below.
+      - POSTFIX_default_destination_concurrency_limit=5
+      - POSTFIX_default_destination_rate_delay=1s
+      - POSTFIX_initial_destination_concurrency=2
+      - POSTFIX_transport_maps=texthash:/etc/postfix/transport
     volumes:
       - /portainer/${COMPOSE_PROJECT_NAME}-postfix/opendkim_keys:/etc/opendkim/keys:ro
       - /portainer/${COMPOSE_PROJECT_NAME}-postfix/sender_canonical:/etc/postfix/sender_canonical:ro
+      - /portainer/${COMPOSE_PROJECT_NAME}-postfix/master.cf:/etc/postfix/master.cf:ro
+      - /portainer/${COMPOSE_PROJECT_NAME}-postfix/transport:/etc/postfix/transport:ro
     networks:
       - default
     restart: unless-stopped
