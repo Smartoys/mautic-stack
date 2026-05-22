@@ -92,8 +92,9 @@ services:
         condition: service_healthy
 
   # ===== Percona Monitoring and Management (PMM) =====
-  # Web UI at https://pmm.mailing.smartoys.be (via Traefik).
-  # First-time registration: see "PMM registration" section in this file's README.
+  # Web UI exposed directly on the host: https://<host-ip>:8443
+  # PMM ships a self-signed cert — accept the browser warning on first visit.
+  # Internal-only access; no Traefik / external routing.
   pmm-server:
     image: percona/pmm-server:3
     container_name: pmm-server
@@ -101,10 +102,12 @@ services:
     restart: unless-stopped
     environment:
       # Initial admin password — PMM 3 forces password change on first login
-      # unless this is set explicitly.
+      # unless this is set explicitly. Note: only applied on first init of /srv.
       - PMM_ADMIN_PASSWORD=${PMM_ADMIN_PASSWORD}
     volumes:
       - /portainer/pmm-server-data:/srv:z
+    ports:
+      - "8443:8443"
     healthcheck:
       test: ["CMD", "curl", "-fksS", "https://localhost:8443/v1/readyz"]
       interval: 30s
@@ -113,21 +116,6 @@ services:
       start_period: 90s
     networks:
       - mautic-db-network
-      - web
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pmm-https.rule=Host(`pmm.mailing.smartoys.be`)"
-      - "traefik.http.routers.pmm-https.entrypoints=https"
-      - "traefik.http.routers.pmm-https.tls=true"
-      - "traefik.http.routers.pmm-https.tls.certresolver=cloudflare"
-      - "traefik.http.routers.pmm-https.service=pmm"
-      # PMM Server only listens on 8443 (HTTPS, self-signed) — backend is HTTPS,
-      # Traefik must skip TLS verification for the upstream.
-      - "traefik.http.services.pmm.loadbalancer.server.port=8443"
-      - "traefik.http.services.pmm.loadbalancer.server.scheme=https"
-      - "traefik.http.services.pmm.loadbalancer.serverstransport=pmm-insecure@docker"
-      - "traefik.http.serversTransports.pmm-insecure.insecureSkipVerify=true"
-      - "traefik.docker.network=web"
 
   pmm-client:
     image: percona/pmm-client:3
@@ -166,5 +154,3 @@ networks:
   mautic-db-network:
     external: true
     name: ${NETWORK_NAME:-mautic-db-network}
-  web:
-    external: true
