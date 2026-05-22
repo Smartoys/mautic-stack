@@ -27,5 +27,17 @@ fi
 # create the fifo file to be able to redirect cron output for non-root users
 mkfifo /tmp/stdout
 chmod 777 /tmp/stdout
+
+# Re-export container env to cron jobs via BASH_ENV=/tmp/cron.env (set in the
+# crontab header). Cron strips its children's env by design, but local.php
+# reads MAUTIC_DB_* at runtime via getenv(); without this dump, every job
+# crashes with `Path must not be empty` on the file_get_contents() fallback.
+#
+# declare -p emits `declare -x KEY="VALUE"` lines with safe quoting, so values
+# containing spaces or special characters source cleanly (unlike `env >`).
+declare -p \
+  | grep -E '^declare -[ax]+ (PHP_INI_VALUE_|MAUTIC_|DOCKER_MAUTIC|RABBITMQ_|MYSQL_|APP_|SYMFONY_|MAILER_)' \
+  > /tmp/cron.env
+
 # run cron and print the output
 cron -f | tail -f /tmp/stdout
