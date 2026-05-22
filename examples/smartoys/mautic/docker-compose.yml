@@ -43,7 +43,7 @@ services:
       - POSTFIX_sender_canonical_classes=envelope_sender
     volumes:
       - /portainer/${COMPOSE_PROJECT_NAME}-postfix/opendkim_keys:/etc/opendkim/keys:ro
-      - ./postfix/sender_canonical:/etc/postfix/sender_canonical:ro
+      - /portainer/${COMPOSE_PROJECT_NAME}-postfix/sender_canonical:/etc/postfix/sender_canonical:ro
     networks:
       - default
     restart: unless-stopped
