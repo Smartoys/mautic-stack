@@ -12,7 +12,9 @@ BASH_ENV=/tmp/cron.env
 10,25,40,55 * * * * php /var/www/html/bin/console mautic:campaigns:trigger 2>&1 | tee /tmp/stdout
 
 # Monitored E-mail - every 5 min
-*/5 * * * * php /var/www/html/bin/console mautic:email:fetch 2>&1 | tee /tmp/stdout
+# flock guard: if a previous fetch is still running (e.g. backlog after downtime),
+# the next tick exits immediately instead of stacking concurrent IMAP sessions.
+*/5 * * * * flock -n /tmp/mautic-email-fetch.lock php /var/www/html/bin/console mautic:email:fetch 2>&1 | tee /tmp/stdout
 
 # Send emails
 */5 * * * * php /var/www/html/bin/console mautic:messages:send 2>&1 | tee /tmp/stdout
