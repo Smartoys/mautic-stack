@@ -1,0 +1,75 @@
+# Percona Monitoring and Management (PMM) Server + Client.
+# Deploys alongside docker-compose.percona.yml — DOES NOT modify percona-db.
+# After first start, manually register the database (see README at bottom).
+#
+# Start:  docker-compose -f docker-compose.pmm.yml up -d
+# Stop:   docker-compose -f docker-compose.pmm.yml down
+
+services:
+  pmm-server:
+    image: percona/pmm-server:3
+    container_name: pmm-server
+    hostname: pmm-server
+    restart: unless-stopped
+    environment:
+      # Sets the initial admin password (one-time; subsequent changes via UI).
+      # PMM 3.x requires changing the default 'admin' password on first login
+      # unless overridden here.
+      - PMM_ADMIN_PASSWORD=${PMM_ADMIN_PASSWORD}
+    volumes:
+      - /portainer/pmm-server-data:/srv:z
+    healthcheck:
+      test: ["CMD", "curl", "-fksS", "https://localhost:8443/v1/readyz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - mautic-db-network
+      - web
+    labels:
+      - "traefik.enable=true"
+
+      # HTTPS router
+      - "traefik.http.routers.pmm-https.rule=Host(`pmm.mailing.smartoys.be`)"
+      - "traefik.http.routers.pmm-https.entrypoints=https"
+      - "traefik.http.routers.pmm-https.tls=true"
+      - "traefik.http.routers.pmm-https.tls.certresolver=cloudflare"
+      - "traefik.http.routers.pmm-https.service=pmm"
+
+      # PMM Server only listens on 8443 (HTTPS, self-signed) — backend is HTTPS,
+      # Traefik must skip TLS verification for the upstream.
+      - "traefik.http.services.pmm.loadbalancer.server.port=8443"
+      - "traefik.http.services.pmm.loadbalancer.server.scheme=https"
+      - "traefik.http.services.pmm.loadbalancer.serverstransport=pmm-insecure@docker"
+      - "traefik.http.serversTransports.pmm-insecure.insecureSkipVerify=true"
+
+      - "traefik.docker.network=web"
+
+  pmm-client:
+    image: percona/pmm-client:3
+    container_name: pmm-client
+    hostname: pmm-client
+    restart: unless-stopped
+    depends_on:
+      pmm-server:
+        condition: service_healthy
+    environment:
+      - PMM_AGENT_SERVER_ADDRESS=pmm-server:8443
+      - PMM_AGENT_SERVER_USERNAME=admin
+      - PMM_AGENT_SERVER_PASSWORD=${PMM_ADMIN_PASSWORD}
+      - PMM_AGENT_SERVER_INSECURE_TLS=1
+      - PMM_AGENT_SETUP=1
+      - PMM_AGENT_SETUP_FORCE=1
+      - PMM_AGENT_CONFIG_FILE=config/pmm-agent.yaml
+    volumes:
+      - /portainer/pmm-client-data:/srv:z
+    networks:
+      - mautic-db-network
+
+networks:
+  mautic-db-network:
+    external: true
+    name: mautic-db-network
+  web:
+    external: true
