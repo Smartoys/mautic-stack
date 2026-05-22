@@ -16,7 +16,7 @@ BASH_ENV=/tmp/cron.env
 
 # Send emails
 */5 * * * * php /var/www/html/bin/console mautic:messages:send 2>&1 | tee /tmp/stdout
-*/5 * * * * php /var/www/html/bin/console mautic:broadcasts:send 2>&1 | tee /tmp/stdout
+*/10 * * * * php /var/www/html/bin/console mautic:broadcasts:send 2>&1 | tee /tmp/stdout
 
 # Social Monitoring - every 6 min
 #*/6 * * * * php /var/www/html/bin/console mautic:social:monitoring 2>&1 | tee /tmp/stdout
