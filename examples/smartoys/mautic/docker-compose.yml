@@ -35,12 +35,18 @@ services:
     environment:
       - POSTFIX_myhostname=mailing.smartoys.be
       - OPENDKIM_DOMAINS=smartoys.be gamecash.be gamecash.fr
-      - POSTFIX_inet_protocols=ipv4       
+      - POSTFIX_inet_protocols=ipv4
+      # Force every outbound envelope sender to a single bounce mailbox
+      # so all DSNs land in mailing@smartoys.be (monitored by Mautic).
+      # envelope_sender keeps the visible From: header untouched.
+      - POSTFIX_sender_canonical_maps=regexp:/etc/postfix/sender_canonical
+      - POSTFIX_sender_canonical_classes=envelope_sender
     volumes:
       - /portainer/${COMPOSE_PROJECT_NAME}-postfix/opendkim_keys:/etc/opendkim/keys:ro
+      - ./postfix/sender_canonical:/etc/postfix/sender_canonical:ro
     networks:
       - default
-    restart: unless-stopped  
+    restart: unless-stopped
 
   mautic_web:
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
