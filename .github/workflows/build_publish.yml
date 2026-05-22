@@ -230,6 +230,6 @@ jobs:
             MAUTIC_VERSION=${{ env.MAUTIC_VERSION }}
             FLAVOUR=${{ matrix.image_type }}
           push: true
-          sbom: true
-          provenance: true
+          sbom: false
+          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
