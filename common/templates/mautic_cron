@@ -21,8 +21,9 @@ BASH_ENV=/tmp/cron.env
 # Social Monitoring - every 6 min
 #*/6 * * * * php /var/www/html/bin/console mautic:social:monitoring 2>&1 | tee /tmp/stdout
 
-# Consume emails
-*/15 * * * * php /var/www/html/bin/console messenger:consume email 2>&1 | tee /tmp/stdout
+# Messenger consumers (email/hit/failed) run as daemons in the mautic_worker
+# container — do NOT add a messenger:consume cron here or it will compete with
+# the daemons for the same RabbitMQ queues.
 
 # Import Contacts - every 3 min - fix 269
 */3 * * * * php /var/www/html/bin/console mautic:import 2>&1 | tee /tmp/stdout
