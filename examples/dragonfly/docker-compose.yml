@@ -84,7 +84,10 @@ services:
     hostname: dragonfly-exporter
     restart: unless-stopped
     command:
-      - "--redis.addr=redis://dragonfly:6379"
+      # Bare host:port — do NOT prefix with redis:// when also passing
+      # --redis.user/--redis.password flags. The scheme gets parsed as the
+      # net.Dial network type and fails with "unknown network redis".
+      - "--redis.addr=dragonfly:6379"
       - "--redis.user=metrics"
       - "--redis.password=${REDIS_EXPORTER_PASSWORD}"
       - "--include-system-metrics"
