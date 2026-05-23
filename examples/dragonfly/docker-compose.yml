@@ -1,0 +1,134 @@
+###############################################################################
+# Dragonfly multi-tenant stack — CLD Distribution
+#
+# Standalone Redis-compatible cache for any project on the CLD Portainer host.
+# Not currently wired into Mautic stacks — see README for how consumers attach.
+#
+# Storage follows the CLD convention:
+#   - Bind mounts under /portainer/<project>-<role>/ for human-managed state
+#     (aclfile, snapshots — anything we want to inspect, edit, back up).
+#   - Named external volumes for opaque container-managed state
+#     (RedisInsight's SQLite DB — pre-created, survives `compose down -v`).
+#
+# Networks:
+#   - redis-net (internal, attachable) — for compose-local and future
+#     external stacks reaching dragonfly without going via the LAN port.
+#
+# RedisInsight is LAN-only: published on ${DRAGONFLY_BIND_IP}:5540, no Traefik.
+#
+# Required env vars (set in Portainer stack):
+#   COMPOSE_PROJECT_NAME=dragonfly
+#   DRAGONFLY_BIND_IP=192.168.81.67
+#   DRAGONFLY_ADMIN_PASSWORD=<strong>
+#   REDIS_EXPORTER_PASSWORD=<matches metrics user in aclfile>
+#
+# Pre-deploy (host side):
+#   sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-data
+#   sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-config
+#   sudo cp config/aclfile /portainer/${COMPOSE_PROJECT_NAME}-config/aclfile
+#   sudo chown -R 999:999 /portainer/${COMPOSE_PROJECT_NAME}-data
+#   sudo chown -R 999:999 /portainer/${COMPOSE_PROJECT_NAME}-config
+#   docker volume create dragonfly-insight-data
+###############################################################################
+
+services:
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.36.0
+    container_name: ${COMPOSE_PROJECT_NAME}-server
+    hostname: dragonfly
+    restart: unless-stopped
+    ulimits:
+      memlock: -1
+    command:
+      - "--logtostderr"
+      - "--proactor_threads=4"
+      - "--maxmemory=6gb"
+      - "--cache_mode=false"
+      - "--snapshot_cron=*/30 * * * *"
+      - "--dir=/data"
+      - "--dbfilename=dump"
+      - "--keys_output_limit=8192"
+      - "--aclfile=/config/aclfile"
+      - "--admin_port=6380"
+      - "--admin_nopass"
+      - "--requirepass=${DRAGONFLY_ADMIN_PASSWORD}"
+      - "--slowlog_log_slower_than=10000"
+      - "--slowlog_max_len=256"
+    ports:
+      - "${DRAGONFLY_BIND_IP}:6379:6379"
+      - "127.0.0.1:6380:6380"
+    volumes:
+      - /portainer/${COMPOSE_PROJECT_NAME}-data:/data:z
+      - /portainer/${COMPOSE_PROJECT_NAME}-config:/config:z,ro
+    networks:
+      - redis-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${DRAGONFLY_ADMIN_PASSWORD}", "PING"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 7G
+        reservations:
+          memory: 4G
+    labels:
+      - "traefik.enable=false"
+
+  exporter:
+    image: oliver006/redis_exporter:v1.62.0
+    container_name: ${COMPOSE_PROJECT_NAME}-exporter
+    hostname: dragonfly-exporter
+    restart: unless-stopped
+    command:
+      - "--redis.addr=redis://dragonfly:6379"
+      - "--redis.user=metrics"
+      - "--redis.password=${REDIS_EXPORTER_PASSWORD}"
+      - "--include-system-metrics"
+      - "--export-client-list"
+    ports:
+      - "${DRAGONFLY_BIND_IP}:9121:9121"
+    networks:
+      - redis-net
+    depends_on:
+      dragonfly:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=false"
+
+  insight:
+    image: redis/redisinsight:2.54
+    container_name: ${COMPOSE_PROJECT_NAME}-insight
+    hostname: dragonfly-insight
+    restart: unless-stopped
+    volumes:
+      - dragonfly-insight-data:/data
+    environment:
+      - RI_APP_HOST=0.0.0.0
+      - RI_APP_PORT=5540
+    ports:
+      - "${DRAGONFLY_BIND_IP}:5540:5540"
+    networks:
+      - redis-net
+    depends_on:
+      dragonfly:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=false"
+
+volumes:
+  # Opaque RedisInsight state — pre-created externally so `compose down -v`
+  # cannot wipe the saved connection list and admin user.
+  dragonfly-insight-data:
+    external: true
+
+networks:
+  # Internal network for compose-local containers (current and future).
+  # Made attachable so other stacks on this host can join (see README).
+  redis-net:
+    name: redis-net
+    driver: bridge
+    attachable: true

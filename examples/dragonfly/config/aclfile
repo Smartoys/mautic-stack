@@ -1,0 +1,14 @@
+# Dragonfly ACL file — Redis 7 ACL syntax.
+#
+# The `default` user's password is set via --requirepass=${DRAGONFLY_ADMIN_PASSWORD}
+# in docker-compose.yml. Do NOT redefine `default` here, or the env var becomes
+# inert and behavior depends on declaration order.
+#
+# Only define non-default users below. Replace REPLACE_ME tokens before deploy.
+# After editing on the host, reload with:
+#   docker exec dragonfly-server redis-cli -a "$DRAGONFLY_ADMIN_PASSWORD" ACL LOAD
+
+# Metrics scraper for oliver006/redis_exporter.
+# Needs INFO + CLIENT (for --export-client-list) + CONFIG GET + LATENCY + SLOWLOG.
+# Read-only on all keys (~*), all pub/sub channels (&*).
+user metrics on >REPLACE_ME_METRICS_PASSWORD ~* &* -@all +info +client +config|get +latency +slowlog +ping
