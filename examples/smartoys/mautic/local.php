@@ -170,8 +170,8 @@ $parameters = array(
     'media_path'  => 'media',
     'tmp_path'    => '/var/www/html/var/tmp',
     'upload_dir'  => '/var/www/html/docroot/media/files',
-    'form_upload_dir'    => '/var/www/html/app/../media/files/form',
-    'report_temp_dir'    => '/var/www/html/app/../media/files/temp',
+    'form_upload_dir'    => '/var/www/html/docroot/media/files/form',
+    'report_temp_dir'    => '/var/www/html/docroot/media/files/temp',
     'contact_export_dir' => '/var/www/html/docroot/media/files/temp',
     'import_leads_dir'   => '/var/www/html/var/import',
 
