@@ -37,8 +37,8 @@ services:
     volumes:
       - mautic-db-data:/var/lib/mysql
       - mautic-db-logs:/var/log/mysql
-    ports:
-      - "3306:3306"
+#    ports:
+#      - "3306:3306"
     command:
       - --mysql-native-password=ON
       - --skip-log-bin
