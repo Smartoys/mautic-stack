@@ -1,0 +1,6 @@
+:5540 {
+	basic_auth {
+		admin REPLACE_ME_BCRYPT_HASH
+	}
+	reverse_proxy insight:5540
+}

@@ -6,9 +6,11 @@ Not currently wired into any Mautic stack.
 
 ## Layout
 
-- `docker-compose.yml` — Dragonfly + redis_exporter + RedisInsight.
+- `docker-compose.yml` — Dragonfly + redis_exporter + RedisInsight + Caddy.
 - `config/aclfile` — ACL users (template). Replace every `REPLACE_ME_*` token
   with a real password before copying to the host.
+- `config/Caddyfile` — Caddy reverse-proxy config that gates RedisInsight with
+  HTTP basic auth. Replace `REPLACE_ME_BCRYPT_HASH` before deploying.
 
 ## ACL model — read this first
 
@@ -48,14 +50,22 @@ Dragonfly's ACL parser is strict:
 sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-data
 sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-config
 
-# Copy the template, then replace every REPLACE_ME_* with a real password.
-# Each `user <name> on >REPLACE_ME_... ...` line needs its own password.
+# 1. aclfile: copy template, edit to replace REPLACE_ME_* with real passwords.
+#    Each `user <name> on >REPLACE_ME_... ...` line needs its own password.
 sudo cp config/aclfile /portainer/${COMPOSE_PROJECT_NAME}-config/aclfile
 sudoedit /portainer/${COMPOSE_PROJECT_NAME}-config/aclfile
+
+# 2. Caddyfile: copy template, generate a bcrypt hash for the Insight UI
+#    password, and paste it in place of REPLACE_ME_BCRYPT_HASH.
+sudo cp config/Caddyfile /portainer/${COMPOSE_PROJECT_NAME}-config/Caddyfile
+docker run --rm caddy:2-alpine caddy hash-password --plaintext '<your-insight-password>'
+# → outputs $2a$14$...  paste it into the Caddyfile
+sudoedit /portainer/${COMPOSE_PROJECT_NAME}-config/Caddyfile
 
 sudo chown -R 999:999 /portainer/${COMPOSE_PROJECT_NAME}-data
 sudo chown -R 999:999 /portainer/${COMPOSE_PROJECT_NAME}-config
 sudo chmod 0640 /portainer/${COMPOSE_PROJECT_NAME}-config/aclfile
+sudo chmod 0644 /portainer/${COMPOSE_PROJECT_NAME}-config/Caddyfile
 
 docker volume create dragonfly-insight-data
 ```
@@ -68,7 +78,33 @@ The password you put on `user default ...` in the aclfile must also be set as
 - LAN clients: `redis://default:<DRAGONFLY_ADMIN_PASSWORD>@<DRAGONFLY_BIND_IP>:6379`
 - Host-only admin port (no auth, loopback): `redis://127.0.0.1:6380`
 - Prometheus exporter: `http://<DRAGONFLY_BIND_IP>:9121/metrics`
-- RedisInsight UI: `http://<DRAGONFLY_BIND_IP>:5540` (LAN-only, no public exposure)
+- RedisInsight UI: `http://<DRAGONFLY_BIND_IP>:5540`
+  — gated by HTTP basic auth (default user `admin`, password set in the Caddyfile)
+
+## Adding RedisInsight users / rotating the Insight password
+
+Edit `/portainer/${COMPOSE_PROJECT_NAME}-config/Caddyfile` on the host. The
+`basic_auth` block takes one `<user> <bcrypt-hash>` pair per line:
+
+```
+basic_auth {
+    admin $2a$14$...
+    alice $2a$14$...
+}
+```
+
+Generate a new hash with:
+
+```bash
+docker run --rm caddy:2-alpine caddy hash-password --plaintext 'new-password'
+```
+
+Apply changes by restarting the Caddy container (Caddy doesn't auto-reload
+the bind-mounted file):
+
+```bash
+docker restart dragonfly-caddy
+```
 
 ## Networking
 

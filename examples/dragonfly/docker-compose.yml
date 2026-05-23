@@ -14,7 +14,8 @@
 #   - redis-net (internal, attachable) — for compose-local and future
 #     external stacks reaching dragonfly without going via the LAN port.
 #
-# RedisInsight is LAN-only: published on ${DRAGONFLY_BIND_IP}:5540, no Traefik.
+# RedisInsight is LAN-only: published on ${DRAGONFLY_BIND_IP}:5540 via a Caddy
+# sidecar that enforces HTTP basic auth. Insight itself has no published port.
 #
 # Required env vars (set in Portainer stack):
 #   COMPOSE_PROJECT_NAME=dragonfly
@@ -26,6 +27,8 @@
 #   sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-data
 #   sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-config
 #   sudo cp config/aclfile /portainer/${COMPOSE_PROJECT_NAME}-config/aclfile
+#   sudo cp config/Caddyfile /portainer/${COMPOSE_PROJECT_NAME}-config/Caddyfile
+#   # then sudoedit both files to replace REPLACE_ME_* tokens
 #   sudo chown -R 999:999 /portainer/${COMPOSE_PROJECT_NAME}-data
 #   sudo chown -R 999:999 /portainer/${COMPOSE_PROJECT_NAME}-config
 #   docker volume create dragonfly-insight-data
@@ -112,13 +115,31 @@ services:
     environment:
       - RI_APP_HOST=0.0.0.0
       - RI_APP_PORT=5540
-    ports:
-      - "${DRAGONFLY_BIND_IP}:5540:5540"
     networks:
       - redis-net
     depends_on:
       dragonfly:
         condition: service_healthy
+    labels:
+      - "traefik.enable=false"
+
+  # Reverse-proxy in front of RedisInsight. Insight has no native auth, so we
+  # gate it with HTTP basic auth via a Caddyfile bind-mounted from the host.
+  # Insight itself drops its published port; only Caddy is reachable on the LAN.
+  caddy:
+    image: caddy:2-alpine
+    container_name: ${COMPOSE_PROJECT_NAME}-caddy
+    hostname: dragonfly-caddy
+    restart: unless-stopped
+    ports:
+      - "${DRAGONFLY_BIND_IP}:5540:5540"
+    volumes:
+      - /portainer/${COMPOSE_PROJECT_NAME}-config/Caddyfile:/etc/caddy/Caddyfile:z,ro
+    networks:
+      - redis-net
+    depends_on:
+      insight:
+        condition: service_started
     labels:
       - "traefik.enable=false"
 
