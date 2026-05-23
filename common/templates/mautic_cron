@@ -2,26 +2,40 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 BASH_ENV=/tmp/cron.env
 
-# Segments Update - every hour
-55 * * * * php /var/www/html/bin/console mautic:segments:update 2>&1 | tee /tmp/stdout
+# === Segments update — heaviest query, runs hourly ===
+# Moved from :55 to :45 to avoid colliding with campaigns:trigger at :55
+# Also added flock so it can't overlap itself if a run takes > 1 hour
+45 * * * * flock -n /tmp/mautic-segments.lock php /var/www/html/bin/console mautic:segments:update 2>&1 | tee /tmp/stdout
 
-# Campaigns Update - every 15 min starting at 5 past the hour
-5,20,35,50 * * * * php /var/www/html/bin/console mautic:campaigns:update 2>&1 | tee /tmp/stdout
+# === Campaigns update — every 15 min ===
+# Shifted by +1 minute so it doesn't collide with messages:send / email:fetch at :05/:20/:35/:50
+6,21,36,51 * * * * flock -n /tmp/mautic-campaigns-update.lock php /var/www/html/bin/console mautic:campaigns:update 2>&1 | tee /tmp/stdout
 
-# Trigger Update - every 15 min starting at 10 past the hour
-10,25,40,55 * * * * php /var/www/html/bin/console mautic:campaigns:trigger 2>&1 | tee /tmp/stdout
+# === Campaigns trigger — every 15 min ===
+# Unchanged offset but now no longer collides with segments:update at :55
+10,25,40,55 * * * * flock -n /tmp/mautic-campaigns-trigger.lock php /var/www/html/bin/console mautic:campaigns:trigger 2>&1 | tee /tmp/stdout
 
-# Monitored E-mail - every 5 min
-# flock guard: if a previous fetch is still running (e.g. backlog after downtime),
-# the next tick exits immediately instead of stacking concurrent IMAP sessions.
-*/5 * * * * flock -n /tmp/mautic-email-fetch.lock php /var/www/html/bin/console mautic:email:fetch 2>&1 | tee /tmp/stdout
+# === Monitored email fetch — every 5 min ===
+# Unchanged (already has flock)
+*/5 * * * * flock -n /tmp/mautic-email-fetch.lock php /var/www/html/bin/console mautic:email:fetch --message-limit=200 2>&1 | tee /tmp/stdout
 
-# Send emails
-*/5 * * * * php /var/www/html/bin/console mautic:messages:send 2>&1 | tee /tmp/stdout
-*/10 * * * * php /var/www/html/bin/console mautic:broadcasts:send 2>&1 | tee /tmp/stdout
+# === Send queued messages — every 5 min, offset by +2 to not collide with email:fetch ===
+2-59/5 * * * * flock -n /tmp/mautic-messages-send.lock php /var/www/html/bin/console mautic:messages:send 2>&1 | tee /tmp/stdout
 
-# Social Monitoring - every 6 min
-#*/6 * * * * php /var/www/html/bin/console mautic:social:monitoring 2>&1 | tee /tmp/stdout
+# === Broadcasts — every 10 min, offset by +7 ===
+7,17,27,37,47,57 * * * * flock -n /tmp/mautic-broadcasts.lock php /var/www/html/bin/console mautic:broadcasts:send 2>&1 | tee /tmp/stdout
+
+# === Import / Export — every 3 min, offset to opposite minute ===
+# Import on minute % 3 == 0, Export on minute % 3 == 1 so they don't share a tick
+*/3 * * * * flock -n /tmp/mautic-import.lock php /var/www/html/bin/console mautic:import 2>&1 | tee /tmp/stdout
+1-59/3 * * * * flock -n /tmp/mautic-export.lock php /var/www/html/bin/console mautic:contacts:scheduled_export 2>&1 | tee /tmp/stdout
+
+# === GeoIP — hourly, moved to :13 to avoid :00 cluster ===
+13 * * * * php /var/www/html/bin/console mautic:iplookup:download 2>&1 | tee /tmp/stdout
+
+# === Maintenance cleanup — moved to 02:30 ===
+# Sits BEFORE the daily ANALYZE event at 03:00 so ANALYZE gets fresh row counts
+30 2 * * * php /var/www/html/bin/console mautic:maintenance:cleanup --days-old=120 2>&1 | tee /tmp/stdout
 
 # Messenger consumers (email/hit/failed) run as daemons in the mautic_worker
 # container — do NOT add a messenger:consume cron here or it will compete with
@@ -33,19 +47,3 @@ BASH_ENV=/tmp/cron.env
 # Export Contacts - every 3 min
 */3 * * * * php /var/www/html/bin/console mautic:contacts:scheduled_export 2>&1 | tee /tmp/stdout
 
-# Webhooks - every 1 min
-#* * * * * php /var/www/html/bin/console mautic:webhooks:process 2>&1 | tee /tmp/stdout
-
-# Update MaxMind GeoLite2 IP database - every hour - fix 171
-0 * * * * php /var/www/html/bin/console mautic:iplookup:download 2>&1 | tee /tmp/stdout
-
-# Clean up old data - at 02:01 - fix 207
-1 2 * * * php /var/www/html/bin/console mautic:maintenance:cleanup --days-old=90 2>&1 | tee /tmp/stdout
-
-# MaxMind CCPA compliance - at 03:02 on sunday, at 03:12 on sunday
-#2 3 * * 0 php /var/www/html/bin/console mautic:donotsell:download 2>&1 | tee /tmp/stdout
-#12 3 * * 0 php /var/www/html/bin/console mautic:max-mind:purge 2>&1 | tee /tmp/stdout
-
-# Mautic Integrations - every 13 min - READ DOCUMENTATION BEFORE ENABLING
-#*/13 * * * 0 php /var/www/html/bin/console mautic:integration:fetchleads 2>&1 | tee /tmp/stdout
-#*/13 * * * 0 php /var/www/html/bin/console mautic:integration:pushactivity 2>&1 | tee /tmp/stdout

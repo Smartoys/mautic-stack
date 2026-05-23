@@ -51,13 +51,12 @@ services:
       - --log_slow_slave_statements=1
       - --wait_timeout=600
       - --sql-mode=STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
-      - --max_connections=200
+      - --max_connections=50
       - --innodb_buffer_pool_size=4G
       - --innodb_redo_log_capacity=1G
       - --innodb_log_buffer_size=64M
       - "--optimizer-switch=prefer_ordering_index=off,favor_range_scan=on"
       - --max_allowed_packet=256M
-      - --max_connections=50
       - --net_read_timeout=600
       - --net_write_timeout=600
       - --innodb_log_file_size=512M
@@ -145,6 +144,46 @@ services:
       - /portainer/pmm-client-data:/srv:z
     networks:
       - mautic-db-network
+
+  # Re-registers percona-db with PMM after every redeploy.
+  # PMM_AGENT_SETUP_FORCE=1 above wipes service registrations on every pmm-client boot,
+  # so this sidecar idempotently re-adds the MySQL service via `docker exec` into
+  # pmm-client (registration must run on the same agent that will scrape).
+  pmm-mysql-register:
+    image: docker:27-cli
+    container_name: pmm-mysql-register
+    restart: on-failure
+    depends_on:
+      pmm-client:
+        condition: service_started
+      percona-db:
+        condition: service_healthy
+    environment:
+      - PMM_DB_PASSWORD=${PMM_DB_PASSWORD}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        for i in $$(seq 1 30); do
+          if docker exec pmm-client pmm-admin status >/dev/null 2>&1; then
+            break
+          fi
+          sleep 2
+        done
+        if docker exec pmm-client pmm-admin list 2>/dev/null | awk '$$1=="MySQL" && $$2=="percona-db"{found=1} END{exit !found}'; then
+          echo "percona-db already registered with PMM"
+          exit 0
+        fi
+        exec docker exec -e PMM_DB_PASSWORD="$$PMM_DB_PASSWORD" pmm-client \
+          sh -c 'pmm-admin add mysql \
+            --username=pmm \
+            --password="$$PMM_DB_PASSWORD" \
+            --host=percona-db \
+            --port=3306 \
+            --query-source=perfschema \
+            --service-name=percona-db'
 
 volumes:
   mautic-db-data:
