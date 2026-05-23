@@ -35,12 +35,22 @@ services:
     environment:
       - POSTFIX_myhostname=mailing.dlgamer.com
       - OPENDKIM_DOMAINS=dlgamer.com
-      - POSTFIX_inet_protocols=ipv4       
+      - POSTFIX_inet_protocols=ipv4
+      # Global per-destination throttle: cap concurrency and pace messages.
+      # Per-ISP overrides live in master.cf (slow-*) + transport map below.
+      # Tuned for dlgamer audience: gmail-heavy (37%), msft (20%), yahoo (5.5%),
+      # smaller french-ISP footprint than smartoys.
+      - POSTFIX_default_destination_concurrency_limit=5
+      - POSTFIX_default_destination_rate_delay=1s
+      - POSTFIX_initial_destination_concurrency=2
+      - POSTFIX_transport_maps=texthash:/etc/postfix/transport
     volumes:
       - /portainer/${COMPOSE_PROJECT_NAME}-postfix/opendkim_keys:/etc/opendkim/keys:ro
+      - /portainer/${COMPOSE_PROJECT_NAME}-postfix/master.cf:/etc/postfix/master.cf:ro
+      - /portainer/${COMPOSE_PROJECT_NAME}-postfix/transport:/etc/postfix/transport:ro
     networks:
       - default
-    restart: unless-stopped  
+    restart: unless-stopped
 
   mautic_web:
     image: ghcr.io/smartoys/mautic-stack:7.1.1-apache

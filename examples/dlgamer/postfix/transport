@@ -1,0 +1,38 @@
+# Postfix transport map: route per-domain traffic through throttled transports.
+# Format: <recipient-domain>  <transport>:[nexthop]
+# Loaded via texthash:/etc/postfix/transport (no postmap step required).
+# Tuned for dlgamer's audience profile (gmail-heavy, msft-heavy, yahoo, smaller French).
+
+# Free.fr family — most aggressive rate-limiter ("451 too many errors")
+free.fr               slow-free:
+wanadoo.fr            slow-free:
+orange.fr             slow-free:
+aliceadsl.fr          slow-free:
+
+# SFR / Numericable family + La Poste
+sfr.fr                slow-sfr:
+neuf.fr               slow-sfr:
+club-internet.fr      slow-sfr:
+laposte.net           slow-sfr:
+
+# Microsoft consumer — ~78K recipients on dlgamer (20% of base)
+hotmail.com           slow-msft:
+hotmail.fr            slow-msft:
+hotmail.co.uk         slow-msft:
+live.fr               slow-msft:
+live.com              slow-msft:
+outlook.com           slow-msft:
+outlook.fr            slow-msft:
+msn.com               slow-msft:
+
+# Google — ~142K recipients on dlgamer (37% of base)
+gmail.com             slow-google:
+googlemail.com        slow-google:
+
+# Yahoo / Aol family — ~21K recipients on dlgamer (5.5% of base)
+yahoo.com             slow-yahoo:
+yahoo.fr              slow-yahoo:
+yahoo.co.jp           slow-yahoo:
+yahoo.com.tw          slow-yahoo:
+yahoo.co.uk           slow-yahoo:
+aol.com               slow-yahoo:
