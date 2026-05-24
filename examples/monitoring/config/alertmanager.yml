@@ -1,32 +1,18 @@
 route:
-  receiver: default
+  receiver: ops-email
   group_by: [alertname, stack]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 12h
 
 receivers:
-  - name: default
-    # REPLACE THIS BEFORE DEPLOY. Pick one of the patterns below.
-    #
-    # --- Slack via incoming webhook ---
-    # slack_configs:
-    #   - api_url: 'https://hooks.slack.com/services/REPLACE/ME/HERE'
-    #     channel: '#ops-alerts'
-    #     send_resolved: true
-    #
-    # --- Email via the smartoys smtprelay container ---
-    # email_configs:
-    #   - to: 'ops@smartoys.be'
-    #     from: 'alerts@smartoys.be'
-    #     smarthost: 'smtprelay:25'
-    #     require_tls: false
-    #     send_resolved: true
-    #
-    # --- Generic webhook (e.g. ntfy, custom endpoint) ---
-    # webhook_configs:
-    #   - url: 'https://ntfy.sh/REPLACE_ME'
-    #     send_resolved: true
+  - name: ops-email
+    email_configs:
+      - to: david@kemushi.eu
+        from: alerts@smartoys.be
+        smarthost: smtprelay:25
+        require_tls: false
+        send_resolved: true
 
 inhibit_rules:
   - source_matchers: [severity="critical"]
