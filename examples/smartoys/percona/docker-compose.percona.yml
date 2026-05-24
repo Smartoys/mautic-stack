@@ -185,6 +185,71 @@ services:
             --query-source=perfschema \
             --service-name=percona-db'
 
+  # ===== Database backups =====
+  # Slim custom image (alpine + mariadb-client + system openssh-client + supercronic)
+  # because jkaninda/mysql-bkup's Go SFTP client drops large uploads to Synology
+  # with EOF mid-transfer. System sftp doesn't have that problem.
+  #
+  # One container per DB so blast radius and credential rotation stay per-tenant.
+  # Shared SSH key bind-mounted from /portainer/db-backup/id_ed25519.
+  # DB passwords from Portainer stack env vars (DB_BACKUP_SMART_PASSWORD,
+  # DB_BACKUP_DLG_PASSWORD) — same pattern as MYSQL_ROOT_PASSWORD above.
+  db-backup-smartoys:
+    build:
+      context: ./db-backup
+    image: mautic-stack-db-backup:local
+    container_name: db-backup-smartoys
+    restart: unless-stopped
+    depends_on:
+      percona-db:
+        condition: service_healthy
+    environment:
+      - TZ=UTC
+      - DB_HOST=percona-db
+      - DB_PORT=3306
+      - DB_NAME=mautic_db_smartoys
+      - DB_USER=backup_smartoys
+      - DB_PASSWORD=${DB_BACKUP_SMART_PASSWORD}
+      - SSH_HOST=servone.kemushi.eu
+      - SSH_PORT=2222
+      - SSH_USER=backup_mautic
+      - SSH_KEY=/keys/id_ed25519
+      - REMOTE_PATH=/Mautic/backup/database
+      # Sunday 03:00 UTC; smartoys ~22 min runtime, leaves 1h buffer before dlgamer
+      - BACKUP_CRON=0 3 * * 0
+    volumes:
+      - /portainer/db-backup/id_ed25519:/keys/id_ed25519:ro
+    networks:
+      - mautic-db-network
+
+  db-backup-dlgamer:
+    build:
+      context: ./db-backup
+    image: mautic-stack-db-backup:local
+    container_name: db-backup-dlgamer
+    restart: unless-stopped
+    depends_on:
+      percona-db:
+        condition: service_healthy
+    environment:
+      - TZ=UTC
+      - DB_HOST=percona-db
+      - DB_PORT=3306
+      - DB_NAME=mautic_db_dlgamer
+      - DB_USER=backup_dlgamer
+      - DB_PASSWORD=${DB_BACKUP_DLG_PASSWORD}
+      - SSH_HOST=servone.kemushi.eu
+      - SSH_PORT=2222
+      - SSH_USER=backup_mautic
+      - SSH_KEY=/keys/id_ed25519
+      - REMOTE_PATH=/Mautic/backup/database
+      # Sunday 04:00 UTC; runs after smartoys finishes (~22 min observed + buffer)
+      - BACKUP_CRON=0 4 * * 0
+    volumes:
+      - /portainer/db-backup/id_ed25519:/keys/id_ed25519:ro
+    networks:
+      - mautic-db-network
+
 volumes:
   mautic-db-data:
     external: true
