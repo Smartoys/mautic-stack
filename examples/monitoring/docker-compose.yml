@@ -1,0 +1,97 @@
+###############################################################################
+# Monitoring stack — Prometheus + Alertmanager — CLD Distribution
+#
+# Standalone monitoring/alerting for any exporter on this Portainer host.
+# Currently scrapes:
+#   - dragonfly-exporter (via redis-net)
+#
+# UIs are bound to loopback only (127.0.0.1) — access via SSH tunnel:
+#   ssh -L 9090:127.0.0.1:9090 -L 9093:127.0.0.1:9093 dsonnet@<host>
+#   then open http://127.0.0.1:9090 and http://127.0.0.1:9093 locally.
+#
+# Required env vars (set in Portainer stack):
+#   COMPOSE_PROJECT_NAME=monitoring
+#
+# Pre-deploy (host side):
+#   sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-prometheus/data
+#   sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-alertmanager/data
+#   sudo cp config/prometheus.yml      /portainer/${COMPOSE_PROJECT_NAME}-prometheus/prometheus.yml
+#   sudo cp config/alert.rules.yml     /portainer/${COMPOSE_PROJECT_NAME}-prometheus/alert.rules.yml
+#   sudo cp config/alertmanager.yml    /portainer/${COMPOSE_PROJECT_NAME}-alertmanager/alertmanager.yml
+#   sudoedit /portainer/${COMPOSE_PROJECT_NAME}-alertmanager/alertmanager.yml
+#   # ^ fill in your notification receiver (Slack / email / webhook)
+#   sudo chown -R 65534:65534 /portainer/${COMPOSE_PROJECT_NAME}-prometheus
+#   sudo chown -R 65534:65534 /portainer/${COMPOSE_PROJECT_NAME}-alertmanager
+###############################################################################
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v3.2.0
+    container_name: ${COMPOSE_PROJECT_NAME}-prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    user: "65534:65534"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.listen-address=:9090"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    volumes:
+      - /portainer/${COMPOSE_PROJECT_NAME}-prometheus/data:/prometheus:z
+      - /portainer/${COMPOSE_PROJECT_NAME}-prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:z,ro
+      - /portainer/${COMPOSE_PROJECT_NAME}-prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:z,ro
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - monitoring-net
+      - redis-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=false"
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    container_name: ${COMPOSE_PROJECT_NAME}-alertmanager
+    hostname: alertmanager
+    restart: unless-stopped
+    user: "65534:65534"
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.listen-address=:9093"
+    volumes:
+      - /portainer/${COMPOSE_PROJECT_NAME}-alertmanager/data:/alertmanager:z
+      - /portainer/${COMPOSE_PROJECT_NAME}-alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:z,ro
+    ports:
+      - "127.0.0.1:9093:9093"
+    networks:
+      - monitoring-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=false"
+
+networks:
+  # Internal network shared between Prometheus and Alertmanager.
+  monitoring-net:
+    name: monitoring-net
+    driver: bridge
+    attachable: true
+  # External: created by the dragonfly stack. Lets Prometheus reach
+  # dragonfly-exporter via Docker DNS.
+  redis-net:
+    external: true
+    name: redis-net

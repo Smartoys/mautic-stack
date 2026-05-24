@@ -1,0 +1,33 @@
+groups:
+  - name: dragonfly
+    interval: 30s
+    rules:
+      - alert: DragonflyMemoryHigh
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          stack: dragonfly
+        annotations:
+          summary: "Dragonfly memory > 80% of cap"
+          description: "Dragonfly is using {{ $value | humanizePercentage }} of its maxmemory cap. Raise the cap or audit TTLs."
+
+      - alert: DragonflyDown
+        expr: up{job="dragonfly"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          stack: dragonfly
+        annotations:
+          summary: "Dragonfly exporter unreachable"
+          description: "Prometheus has been unable to scrape dragonfly-exporter for 2 minutes."
+
+      - alert: DragonflyEvictionRateSustained
+        expr: rate(redis_evicted_keys_total[5m]) > 10
+        for: 15m
+        labels:
+          severity: info
+          stack: dragonfly
+        annotations:
+          summary: "Dragonfly evicting > 10 keys/sec sustained"
+          description: "Eviction is working (cache_mode=true), but sustained eviction rate of {{ $value }} keys/sec for 15m suggests the working set exceeds maxmemory. Consider raising the cap."
