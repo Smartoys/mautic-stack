@@ -190,14 +190,15 @@ services:
   # because jkaninda/mysql-bkup's Go SFTP client drops large uploads to Synology
   # with EOF mid-transfer. System sftp doesn't have that problem.
   #
+  # Image source: examples/smartoys/percona/db-backup/ — published to GHCR by
+  # .github/workflows/build_publish_db_backup.yml on any change under that path.
+  #
   # One container per DB so blast radius and credential rotation stay per-tenant.
   # Shared SSH key bind-mounted from /portainer/db-backup/id_ed25519.
   # DB passwords from Portainer stack env vars (DB_BACKUP_SMART_PASSWORD,
   # DB_BACKUP_DLG_PASSWORD) — same pattern as MYSQL_ROOT_PASSWORD above.
   db-backup-smartoys:
-    build:
-      context: ./db-backup
-    image: mautic-stack-db-backup:local
+    image: ghcr.io/smartoys/mautic-stack-db-backup:latest
     container_name: db-backup-smartoys
     restart: unless-stopped
     depends_on:
@@ -223,9 +224,7 @@ services:
       - mautic-db-network
 
   db-backup-dlgamer:
-    build:
-      context: ./db-backup
-    image: mautic-stack-db-backup:local
+    image: ghcr.io/smartoys/mautic-stack-db-backup:latest
     container_name: db-backup-dlgamer
     restart: unless-stopped
     depends_on:
