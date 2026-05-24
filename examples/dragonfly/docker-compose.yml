@@ -47,7 +47,7 @@ services:
       - "--logtostderr"
       - "--proactor_threads=4"
       - "--maxmemory=6gb"
-      - "--cache_mode=false"
+      - "--cache_mode=true"
       - "--snapshot_cron=*/30 * * * *"
       - "--dir=/data"
       - "--dbfilename=dump"
