@@ -5,7 +5,8 @@ on:
     branches:
       - v7
     paths:
-      - 'examples/smartoys/percona/db-backup/**'
+      - 'examples/smartoys/percona/db-backup/Dockerfile'
+      - 'examples/smartoys/percona/db-backup/*.sh'
       - '.github/workflows/build_publish_db_backup.yml'
   workflow_dispatch:
 
