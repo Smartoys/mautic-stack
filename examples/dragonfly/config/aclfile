@@ -1,5 +1,5 @@
 user default on >REPLACE_ME_ADMIN_PASSWORD ~* &* +@all
 user metrics on >REPLACE_ME_METRICS_PASSWORD ~* &* -@all +info +client +config +latency +slowlog +ping
-user dlgstaging on >REPLACE_ME_DLGSTAGING_PASSWORD ~dlgamerbackoffice_database_dlgstaging:* -@all +@read +@write +@connection -@dangerous
-user dlgpreprod on >REPLACE_ME_DLGPREPROD_PASSWORD ~dlgamerbackoffice_database_dlgpreprod:* -@all +@read +@write +@connection -@dangerous
-user dlgprod on >REPLACE_ME_DLGPROD_PASSWORD ~dlgamerbackoffice_database_dlgprod:* -@all +@read +@write +@connection -@dangerous
+user dlgstaging on >REPLACE_ME_DLGSTAGING_PASSWORD ~dlgamerbackoffice_database_dlgstaging:* -@all +@read +@write +@connection -@dangerous +@scripting
+user dlgpreprod on >REPLACE_ME_DLGPREPROD_PASSWORD ~dlgamerbackoffice_database_dlgpreprod:* -@all +@read +@write +@connection -@dangerous +@scripting
+user dlgprod on >REPLACE_ME_DLGPROD_PASSWORD ~dlgamerbackoffice_database_dlgprod:* -@all +@read +@write +@connection -@dangerous +@scripting
