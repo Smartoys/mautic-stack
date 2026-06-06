@@ -61,7 +61,10 @@ services:
       memlock: -1
     command:
       - "--logtostderr"
-      - "--proactor_threads=2"
+      # 1 thread: Dragonfly requires >=256MiB of --maxmemory PER proactor
+      # thread. With --maxmemory=256mb, >1 thread fails to boot ("N threads, so
+      # N*256MiB required. Exiting"). A queue is low-throughput, so 1 is plenty.
+      - "--proactor_threads=1"
       # No --cache_mode: instance does NOT evict (reports noeviction). Queued
       # jobs and ShouldBeUnique locks are never silently dropped. Hitting
       # --maxmemory returns OOM on writes instead — which surfaces as an error.
