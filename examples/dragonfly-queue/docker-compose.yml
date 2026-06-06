@@ -30,13 +30,17 @@
 #     (examples/dragonfly/). We JOIN it so the Laravel app and the monitoring
 #     Prometheus can reach this instance by hostname without a LAN port.
 #
-# Exposure: internal only. No LAN bind, no Traefik route. The only published
-# port is a loopback admin port for ACL maintenance. The Laravel worker reaches
-# dragonfly-queue:6379 over redis-net.
+# Exposure: the Laravel worker runs on a REMOTE host and reaches this instance
+# over the LAN, so we publish 6379 on the LAN IP only (port 6390 to avoid the
+# cache's 6379), mirroring the cache stack. Bound to ${DRAGONFLY_BIND_IP} —
+# NOT 0.0.0.0 — so it never lands on the Docker bridge interfaces. No Traefik
+# route. Plaintext + ACL AUTH (trusted LAN, same posture as the cache).
+# Containers on redis-net (e.g. the exporter) still reach it as dragonfly-queue.
 #
 # Required env vars (set in Portainer stack — DISTINCT values from the cache
 # stack; do NOT reuse the cache passwords):
 #   COMPOSE_PROJECT_NAME=dragonfly-queue
+#   DRAGONFLY_BIND_IP=192.168.81.67
 #   DRAGONFLY_ADMIN_PASSWORD=<strong, distinct from cache>
 #   REDIS_EXPORTER_PASSWORD=<matches metrics user in this aclfile>
 #
@@ -87,8 +91,11 @@ services:
       - "--slowlog_log_slower_than=10000"
       - "--slowlog_max_len=256"
     ports:
-      # Loopback admin port only — 6381 on the host to avoid colliding with the
-      # cache instance's 127.0.0.1:6380. No LAN port; consumers use redis-net.
+      # LAN-published client port for the remote Laravel worker. Bound to the
+      # LAN IP only; host port 6390 avoids the cache's 6379.
+      - "${DRAGONFLY_BIND_IP}:6390:6379"
+      # Loopback admin port — 6381 on the host to avoid colliding with the
+      # cache instance's 127.0.0.1:6380.
       - "127.0.0.1:6381:6380"
     volumes:
       - /portainer/${COMPOSE_PROJECT_NAME}-data:/data:z
