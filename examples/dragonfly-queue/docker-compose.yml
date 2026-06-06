@@ -1,0 +1,135 @@
+###############################################################################
+# Dragonfly queue stack — CLD Distribution
+#
+# Second, SEPARATE Dragonfly instance dedicated to the Laravel queue backend
+# (the dlgamer backoffice app). This is NOT the cache instance — see
+# examples/dragonfly/ for that. The two run side by side on the Portainer host.
+#
+# Why a separate instance, not a separate DB index:
+#   Dragonfly's eviction is instance-wide, not per-logical-DB. The cache
+#   instance runs with --cache_mode=true and evicts under memory pressure. A
+#   queue must NEVER be evicted — an evicted job key is a job that silently
+#   vanishes with no error. So the queue gets its own instance that does not
+#   evict.
+#
+# No eviction — the IMPORTANT bit:
+#   Dragonfly does NOT support Redis's --maxmemory_policy flag / CONFIG SET
+#   maxmemory-policy. Eviction is controlled solely by --cache_mode. With
+#   cache_mode OFF (the default, and what we do here) Dragonfly reports
+#   maxmemory_policy:noeviction and returns OOM on write once --maxmemory is
+#   hit, rather than dropping keys. So we simply omit --cache_mode entirely.
+#   Verify with `INFO MEMORY | grep maxmemory_policy` (NOT `CONFIG GET`, which
+#   returns empty on Dragonfly).
+#
+# Storage follows the CLD convention:
+#   - Bind mounts under /portainer/<project>-<role>/ for human-managed state
+#     (aclfile, snapshots — anything we want to inspect, edit, back up).
+#
+# Networks:
+#   - redis-net (external, attachable) — owned by the cache stack
+#     (examples/dragonfly/). We JOIN it so the Laravel app and the monitoring
+#     Prometheus can reach this instance by hostname without a LAN port.
+#
+# Exposure: internal only. No LAN bind, no Traefik route. The only published
+# port is a loopback admin port for ACL maintenance. The Laravel worker reaches
+# dragonfly-queue:6379 over redis-net.
+#
+# Required env vars (set in Portainer stack — DISTINCT values from the cache
+# stack; do NOT reuse the cache passwords):
+#   COMPOSE_PROJECT_NAME=dragonfly-queue
+#   DRAGONFLY_ADMIN_PASSWORD=<strong, distinct from cache>
+#   REDIS_EXPORTER_PASSWORD=<matches metrics user in this aclfile>
+#
+# Pre-deploy (host side):
+#   sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-data
+#   sudo mkdir -p /portainer/${COMPOSE_PROJECT_NAME}-config
+#   sudo cp config/aclfile /portainer/${COMPOSE_PROJECT_NAME}-config/aclfile
+#   # then sudoedit to replace REPLACE_ME_* tokens
+#   sudo chown -R 999:999 /portainer/${COMPOSE_PROJECT_NAME}-data
+#   sudo chown -R 999:999 /portainer/${COMPOSE_PROJECT_NAME}-config
+#   sudo chmod 0640 /portainer/${COMPOSE_PROJECT_NAME}-config/aclfile
+###############################################################################
+
+services:
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.36.0
+    container_name: ${COMPOSE_PROJECT_NAME}-server
+    hostname: dragonfly-queue
+    restart: unless-stopped
+    ulimits:
+      memlock: -1
+    command:
+      - "--logtostderr"
+      - "--proactor_threads=2"
+      # No --cache_mode: instance does NOT evict (reports noeviction). Queued
+      # jobs and ShouldBeUnique locks are never silently dropped. Hitting
+      # --maxmemory returns OOM on writes instead — which surfaces as an error.
+      - "--maxmemory=256mb"
+      # Persistence: snapshot every 5 min so a crash loses at most ~5 min of
+      # in-flight jobs. A graceful stop (SIGTERM on redeploy) also snapshots.
+      - "--snapshot_cron=*/5 * * * *"
+      - "--dir=/data"
+      - "--dbfilename=queue-dump"
+      - "--keys_output_limit=8192"
+      - "--aclfile=/config/aclfile"
+      - "--admin_port=6380"
+      - "--admin_nopass"
+      - "--requirepass=${DRAGONFLY_ADMIN_PASSWORD}"
+      - "--slowlog_log_slower_than=10000"
+      - "--slowlog_max_len=256"
+    ports:
+      # Loopback admin port only — 6381 on the host to avoid colliding with the
+      # cache instance's 127.0.0.1:6380. No LAN port; consumers use redis-net.
+      - "127.0.0.1:6381:6380"
+    volumes:
+      - /portainer/${COMPOSE_PROJECT_NAME}-data:/data:z
+      - /portainer/${COMPOSE_PROJECT_NAME}-config:/config:z,ro
+    networks:
+      - redis-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${DRAGONFLY_ADMIN_PASSWORD}", "PING"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          # Slightly above --maxmemory so Dragonfly's own overhead has headroom
+          # without the container being OOM-killed.
+          memory: 384M
+        reservations:
+          memory: 256M
+    labels:
+      - "traefik.enable=false"
+
+  exporter:
+    image: oliver006/redis_exporter:v1.62.0
+    container_name: ${COMPOSE_PROJECT_NAME}-exporter
+    hostname: dragonfly-queue-exporter
+    restart: unless-stopped
+    command:
+      # Bare host:port — do NOT prefix with redis:// when also passing
+      # --redis.user/--redis.password (the scheme is parsed as the net.Dial
+      # network type and fails with "unknown network redis").
+      - "--redis.addr=dragonfly-queue:6379"
+      - "--redis.user=metrics"
+      - "--redis.password=${REDIS_EXPORTER_PASSWORD}"
+      - "--include-system-metrics"
+      - "--export-client-list"
+    # No published port — the monitoring Prometheus is on redis-net and scrapes
+    # dragonfly-queue-exporter:9121 directly by hostname.
+    networks:
+      - redis-net
+    depends_on:
+      dragonfly:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=false"
+
+networks:
+  # Owned by the cache stack (examples/dragonfly/). We join it as external.
+  redis-net:
+    external: true
+    name: redis-net
