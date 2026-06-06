@@ -52,7 +52,12 @@
 
 services:
 
-  dragonfly:
+  # Service name MUST differ from the cache stack's `dragonfly` service. On the
+  # shared redis-net, the compose service name becomes a network alias, so a
+  # second `dragonfly` service would make `dragonfly:6379` round-robin between
+  # the cache and queue instances (cache clients hit the queue ~50% of the time,
+  # WRONGPASS-ing on the queue's distinct passwords). Keep it `dragonfly-queue`.
+  dragonfly-queue:
     image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.36.0
     container_name: ${COMPOSE_PROJECT_NAME}-server
     hostname: dragonfly-queue
@@ -126,7 +131,7 @@ services:
     networks:
       - redis-net
     depends_on:
-      dragonfly:
+      dragonfly-queue:
         condition: service_healthy
     labels:
       - "traefik.enable=false"
