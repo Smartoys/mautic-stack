@@ -48,10 +48,15 @@ be defined in the on-host aclfile (otherwise the next `ACL LOAD` resets it to
 
 The per-env queue users are scoped to the Laravel app's key prefix and granted
 `+@scripting` because Laravel's Redis queue drives its atomic pop/reserve/
-release operations through Lua (`EVAL`):
+release operations through Lua (`EVAL`), plus `+@pubsub` because Laravel's
+queue/broadcast layer issues `SUBSCRIBE`/`PUBLISH`. Note that the `&*` channel
+grant only authorizes *which channels* a user may touch — it does **not** grant
+the pub/sub *commands* themselves (those live in `@pubsub`, which is not part of
+`@read`/`@write`/`@connection`). Without `+@pubsub` the worker gets
+`NOPERM <user> has no ACL permissions` on the first `PUBLISH`/`SUBSCRIBE`:
 
 ```
-user dlgprod on >PASSWORD ~dlgamerbackoffice_database_dlgprod:* &* -@all +@read +@write +@connection -@dangerous +@scripting
+user dlgprod on >PASSWORD ~dlgamerbackoffice_database_dlgprod:* &* -@all +@read +@write +@connection -@dangerous +@scripting +@pubsub
 ```
 
 > **Confirm the prefix.** These users assume the Laravel `redis_queue`
