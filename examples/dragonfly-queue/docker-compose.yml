@@ -77,7 +77,10 @@ services:
       # No --cache_mode: instance does NOT evict (reports noeviction). Queued
       # jobs and ShouldBeUnique locks are never silently dropped. Hitting
       # --maxmemory returns OOM on writes instead — which surfaces as an error.
-      - "--maxmemory=256mb"
+      # 512mb (up from 256mb): this instance also stores Laravel Horizon
+      # metadata + redis queue payloads (dlgamer), so give 2x headroom against
+      # an OOM-on-write under a job/failed-job storm.
+      - "--maxmemory=512mb"
       # Persistence: snapshot every 5 min so a crash loses at most ~5 min of
       # in-flight jobs. A graceful stop (SIGTERM on redeploy) also snapshots.
       - "--snapshot_cron=*/5 * * * *"
@@ -113,9 +116,9 @@ services:
         limits:
           # Slightly above --maxmemory so Dragonfly's own overhead has headroom
           # without the container being OOM-killed.
-          memory: 384M
+          memory: 640M
         reservations:
-          memory: 256M
+          memory: 320M
     labels:
       - "traefik.enable=false"
 
