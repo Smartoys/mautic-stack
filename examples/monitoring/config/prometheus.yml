@@ -12,9 +12,13 @@ scrape_configs:
       - targets: ['dragonfly-exporter:9121']
         labels:
           instance: dragonfly
-      # Queue instance (dragonfly-queue stack). Reachable on redis-net by
-      # hostname. Same job so DragonflyDown covers it; instance label lets the
-      # memory rules treat cache (evicting) and queue (noeviction) differently.
+
+  # Queue instance (dragonfly-queue stack). Reachable on redis-net by hostname.
+  # Separate job; DragonflyDown matches job=~"dragonfly.*" so it is covered too.
+  # The instance label lets the memory rules treat cache (evicting) and queue
+  # (noeviction) differently.
+  - job_name: dragonfly-queue
+    static_configs:
       - targets: ['dragonfly-queue-exporter:9121']
         labels:
           instance: dragonfly-queue

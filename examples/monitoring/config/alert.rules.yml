@@ -13,7 +13,7 @@ groups:
           description: "Dragonfly is using {{ $value | humanizePercentage }} of its maxmemory cap. Raise the cap or audit TTLs."
 
       - alert: DragonflyDown
-        expr: up{job="dragonfly"} == 0
+        expr: up{job=~"dragonfly.*"} == 0
         for: 2m
         labels:
           severity: critical
