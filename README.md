@@ -112,6 +112,44 @@ To build Mautic 6.0.6 apache, run:
 docker build . --build-arg FLAVOUR=apache --build-arg BASE_TAG=8.3-apache-bookworm --build-arg MAUTIC_VERSION=6.0.6 mautic/mautic:6-apache
 ```
 
+## Releasing images (publishing to GHCR)
+
+The published images at `ghcr.io/smartoys/mautic-stack:<version>-<variant>` are built and
+pushed by `.github/workflows/build_publish.yml`. **This workflow is manual-only
+(`workflow_dispatch`) — it does *not* run on push.**
+
+This is deliberate: building an image runs a full `composer create-project` + `npm install`
++ asset generation (several minutes) and *overwrites* the version tag in GHCR. Triggering
+that on every commit to `v7` wasted CI minutes and meant an unrelated change (README, compose,
+docs) could silently republish a tag. PR build-sanity is still covered separately by
+`pr_test.yml` (it builds `apache` + `fpm` when `Dockerfile` or `common/**` change).
+
+### Bumping to a new Mautic version
+
+Bumping a version is a two-part manual process — **build first, then move the pins**:
+
+1. **Build & publish the image** (do this before touching any `image:` pin — the tag must
+   exist in GHCR first):
+   ```
+   gh workflow run build_publish.yml --ref v7 -f mautic_version=X.Y.Z
+   ```
+   Optional flags: `-f tag_as_latest=true`, `-f overwrite_latest_minor=true`,
+   `-f overwrite_latest_major=true` (only when releasing the newest stable release).
+
+2. **Verify the tag was pushed** before rolling out, e.g. watch the run:
+   ```
+   gh run watch $(gh run list --workflow=build_publish.yml -L1 --json databaseId -q '.[0].databaseId')
+   ```
+   The `build-and-push-image` job log ends with `image.name: ghcr.io/smartoys/mautic-stack:X.Y.Z-apache`.
+
+3. **Move the pins** — update the `image:` tags in the example stacks
+   (`examples/*/mautic/docker-compose.yml`) and the `default:` in `build_publish.yml` to the
+   new version, then deploy by pulling on the host stacks.
+
+> Before bumping, check whether the new version carries DB schema migrations
+> (`gh api repos/mautic/mautic/compare/<old>...<new> -q '.files[].filename' | grep migrations/`).
+> If it does, plan the `doctrine:migrations:migrate` step into the rollout.
+
 ## Persistent storage
 
 The images by default foresee following volumes to persist data (not taking into account e.g. database or queueing data, as that's not part of these images).

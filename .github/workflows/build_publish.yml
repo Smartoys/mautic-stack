@@ -1,15 +1,18 @@
 name: Build and publish a Docker image
 
+# Manual-only on purpose. Publishing a GHCR image is an explicit release step,
+# not a side effect of every push to v7 (a full composer + npm + asset build
+# that would re-publish — and overwrite — the same tag on unrelated commits).
+# Build sanity on PRs is already covered by pr_test.yml.
+# To publish / bump a version, run it explicitly (see "Releasing images" in README.md):
+#   gh workflow run build_publish.yml --ref v7 -f mautic_version=X.Y.Z
 on:
-  push:
-    branches:
-      - v7
   workflow_dispatch:
     inputs:
       mautic_version:
         description: 'Mautic version (has to be a valid version from `mautic/recommended-project`)'
         required: false
-        default: '7.1.1'
+        default: '7.1.2'
       overwrite_latest_major:
         type: boolean
         description: "Overwrite latest major tag (e.g.`5`). This should only be checked if you're releasing the latest release."
@@ -44,7 +47,7 @@ jobs:
             VERSION="${{ inputs.mautic_version }}"
           else
             # For automatic builds, use default version
-            VERSION="7.1.1"
+            VERSION="7.1.2"
           fi
           echo "MAUTIC_VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -172,7 +175,7 @@ jobs:
             VERSION="${{ inputs.mautic_version }}"
           else
             # For automatic builds, use default version
-            VERSION="7.1.1"
+            VERSION="7.1.2"
           fi
           echo "MAUTIC_VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
