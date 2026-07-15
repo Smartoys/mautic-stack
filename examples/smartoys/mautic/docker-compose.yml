@@ -98,7 +98,7 @@ services:
       - "traefik.http.middlewares.mautic-smartoys-secure-headers.headers.stspreload=true"
       - "traefik.http.middlewares.mautic-smartoys-secure-headers.headers.stsseconds=31536000"
       - "traefik.http.middlewares.mautic-smartoys-secure-headers.headers.forcestsheader=true"
-      - "traefik.http.middlewares.mautic-smartoys-secure-headers.headers.framedeny=true"
+      - "traefik.http.middlewares.mautic-smartoys-secure-headers.headers.customframeoptionsvalue=SAMEORIGIN"
       - "traefik.http.middlewares.mautic-smartoys-secure-headers.headers.contenttypenosniff=true"
       - "traefik.http.middlewares.mautic-smartoys-secure-headers.headers.browserxssfilter=true"
       - "traefik.http.middlewares.mautic-smartoys-secure-headers.headers.referrerpolicy=strict-origin-when-cross-origin"
