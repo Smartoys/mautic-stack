@@ -20,6 +20,14 @@ needed is inlined. Replace every `<tenant>`, `<db-network>`, `percona-db`,
 - Prometheus config is bind-mounted from the host:
   - `/portainer/monitoring-prometheus/prometheus.yml`
   - `/portainer/monitoring-prometheus/alert.rules.yml`
+
+  > **Note (2026-08-06):** the monitoring stack has moved to
+  > [`Smartoys/docker-services`](https://github.com/Smartoys/docker-services)
+  > at `observability/monitoring`, and is deployed as a Portainer **Git
+  > stack** — Portainer clones the repo on the host, so config is bind-mounted
+  > from the checkout rather than hand-copied to `/portainer/...`. Edit the
+  > files in that repository, not on the host. The rest of this document is
+  > unchanged and still correct.
   - Both files are owned `65534:65534` (the `nobody` user the container runs as).
 - The new Percona server lives in a **separate** Docker Compose stack with its
   own network.
