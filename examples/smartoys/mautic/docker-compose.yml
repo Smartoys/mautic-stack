@@ -6,11 +6,20 @@ x-mautic-volumes:
   - /portainer/${COMPOSE_PROJECT_NAME}-mautic/media/files:/var/www/html/docroot/media/files:z
   - /portainer/${COMPOSE_PROJECT_NAME}-mautic/media/images:/var/www/html/docroot/media/images:z
   - /portainer/${COMPOSE_PROJECT_NAME}-cron:/opt/mautic/cron:z
+# Container logs: at most 3 x 50 MB per container (Docker json-file default is
+# unbounded; the smtprelay log alone had reached 3.8 GB on portainer1, 2026-10-04).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "3"
+
 services:
   # Database moved to separate stack - see percona/docker-compose.percona.yml
   # Start with: cd percona && docker-compose -f docker-compose.percona.yml up -d
 
   rabbitmq:
+    logging: *default-logging
     image: rabbitmq:3-management
     hostname: rabbitmq
     environment:
@@ -32,6 +41,7 @@ services:
     restart: unless-stopped
 
   smtprelay:
+    logging: *default-logging
     image: mwader/postfix-relay
     hostname: mauticsmtp
     environment:
@@ -59,6 +69,7 @@ services:
     restart: unless-stopped
 
   mautic_web:
+    logging: *default-logging
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
     # Images are private and require GHCR authentication
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
@@ -111,6 +122,7 @@ services:
       - "traefik.docker.network=web"
 
   mautic_cron:
+    logging: *default-logging
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
     # Images are private and require GHCR authentication
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
@@ -133,6 +145,7 @@ services:
       - percona-db:mysql
 
   mautic_worker:
+    logging: *default-logging
     # Custom Mautic image built from https://github.com/Smartoys/mautic-stack
     # Images are private and require GHCR authentication
     # To authenticate: echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
